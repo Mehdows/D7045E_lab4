@@ -1,6 +1,6 @@
 // Andreas Form och Marcus Asplund
 
-class ShaderProgram{
+export class ShaderProgram{
     
     constructor(gl, fragmentShader, vertexShader){
         this.gl = gl;

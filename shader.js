@@ -1,6 +1,6 @@
 // Andreas Form och Marcus Asplund
 
-class Shader{
+export class Shader{
 
     constructor(gl, shaderType, source){
         this.shader = gl.createShader(shaderType);

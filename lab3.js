@@ -1,9 +1,18 @@
 // Andreas Form och Marcus Asplund
 
+import { Shader } from "./shader.js";
+import { ShaderProgram } from "./shaderProgram.js";
+import { Camera } from "./camera.js";
+import { Cuboid, Sphere, Torus, Cone, Cylinder } from "./mesh.js";
+import { GraphicsNode } from "./graphicsNode.js";
+import { MonochromeMaterial } from "./material.js";
+import { mat4 } from './node_modules/gl-matrix/esm/index.js';
+
 var gl;
 var shaderProgram;
 var nodes = [];
 var camera;
+var playableBox;
 
 var vertexShaderSource =
 "attribute vec4 a_Position;\n" +
@@ -63,7 +72,7 @@ function init() {
   let playableBoxColor = [1, 0, 1, 1]; // Red
   //let randomBoxesMaterial = new MonochromeMaterial(gl, shaderProgram, randomBoxesColor);
   let playableBoxMaterial = new MonochromeMaterial(gl, shaderProgram, playableBoxColor);
-  let playableBoxMatrix = mat4([1,0,0,0],[0,1,0,0],[0,0,1,-3],[0,0,0,1]);
+  let playableBoxMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-3,1);
   playableBox = new GraphicsNode(gl, cube, playableBoxMaterial, playableBoxMatrix);
 
 
@@ -145,30 +154,19 @@ function doFrame() {
 
 
 window.addEventListener('keydown', function(event) {
-    let moveVector = mat4([1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]);
+    let moveVector = mat4.fromValues(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
     if (event.key == 'w') {
-      moveVector[1][3] -= 0.03;  
+      moveVector[13] += 0.03;  
     } if (event.key == 's') {
-      moveVector[1][3] += 0.03;  
+      moveVector[13] -= 0.03;  
     } if (event.key == 'a') {
-      moveVector[0][3] += 0.03;  
+      moveVector[12] -= 0.03;  
     } if (event.key == 'd') {
-      moveVector[0][3] -= 0.03;  
+      moveVector[12] += 0.03;  
     } if (event.key == 'e') {
-      moveVector[2][3] -= 0.03; 
+      moveVector[14] += 0.03; 
     } if (event.key == 'c') {
-      moveVector[2][3] += 0.03;  
-    }
-
-
-    /**
-     * mat4.rotateX( modelview, modelview, radians );
-      mat4.rotateY( modelview, modelview, radians );
-      mat4.rotateZ( modelview, modelview, radians );
-      mat4.rotate( modelview, modelview, radians, [dx,dy,dz] );
-     */
-    for(let node of nodes){
-      node.update(moveVector);
+      moveVector[14] -= 0.03;  
     }
 
     playableBox.update(moveVector);
