@@ -42,10 +42,12 @@ function init() {
 
   // Making the mesh
   let width = 0.1;
-  let height = 0.1;
-  let depth = 0.3;
-  let cube = new cuboid(width, height, depth, gl, shaderProgram);
+  let height = 0.3;
+  let depth = 0.1;
 
+  let cube = new Cuboid(0.1, 0.1, 0.1, gl, shaderProgram);
+  let star = new Star(5, 0.2, 0.1, 1, gl, shaderProgram);
+  
   let randomBoxesColor = [0, 1, 0, 1]; // Green
   let playableBoxColor = [1, 0, 1, 1]; // Red
   let randomBoxesMaterial = new MonochromeMaterial(gl, shaderProgram, randomBoxesColor);
@@ -58,7 +60,7 @@ function init() {
     let y = Math.random() * 5 -2.5;
     let z = -Math.random()*10 + 2;
     let mat = move([x, y, z]);
-    let randomBox = new GraphicsNode(gl, cube, randomBoxesMaterial, mat);
+    let randomBox = new GraphicsNode(gl, star, randomBoxesMaterial, mat);
     boxes.push(randomBox);
   }
   render();

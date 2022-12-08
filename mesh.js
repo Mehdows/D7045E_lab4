@@ -25,7 +25,7 @@ class Mesh {
         let prog = shaderProgram.getProgram();
         let pos = gl.getAttribLocation(prog, "a_Position");
 
-        gl.vertexAttribPointer(pos, 4, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(pos);
     }
 
@@ -38,18 +38,18 @@ class Mesh {
     }
 }
 
-class cuboid extends Mesh{
+class Cuboid extends Mesh{
     constructor(width, height, depth, gl, shaderProgram){
 
         let vertices = [
-            -width, -height, depth, 1,
-            -width, height, depth, 1,
-            width, height, depth, 1,
-            width, -height, depth, 1,
-            -width, -height, -depth, 1,
-            -width, height, -depth, 1,
-            width, height, -depth, 1,
-            width, -height, -depth, 1
+            -width, -height, depth, 
+            -width, height, depth, 
+            width, height, depth, 
+            width, -height, depth, 
+            -width, -height, -depth, 
+            -width, height, -depth, 
+            width, height, -depth, 
+            width, -height, -depth,
         ];
 
         let indices = [
@@ -75,25 +75,41 @@ class cuboid extends Mesh{
         this.gl = gl;
         this.shaderProgram = shaderProgram;
     }
+}
 
-    // Getters
-    getCordinates(){
-        let x = -this.width/2;
-        let y = -this.height/2;
-        let z = -this.depth/2;
 
-        return [x,y,z];
+class Star extends Mesh{
+    constructor(spikes, outerDistance, innerDistance, thickness, gl, shaderProgram){
+        if (spikes < 2) throw new Error("spikes must be larger than 2");
+        if (outerDistance <= innerDistance) throw new Error("outerDistance must be bigger or the same as innerDistance");
+
+        let vertices = [
+            0, 0, thickness/2, 
+            0, 0, -thickness/2
+        ];
+        for (let i = 0; i < spikes; i++) {
+            let angle =  Math.PI/2 + i/spikes * 2 * Math.PI;
+            let x = Math.cos(angle) * outerDistance;
+            let y = Math.sin(angle) * outerDistance;
+            vertices.push(x, y, 0);
+        }
+        
+        for (let i = 0; i < spikes; i++) {
+            let angle = i/spikes * 2 * Math.PI + Math.PI/2 + Math.PI/spikes;
+            let x = Math.cos(angle) * innerDistance;
+            let y = Math.sin(angle) * innerDistance;
+            vertices.push(x, y, 0);
+        }
+
+        let indices = [];
+        for (let i = 0; i < spikes; i++) {
+            let last = spikes+2+(i+spikes-1)%spikes;
+            indices.push(0, i+2, i+spikes+2);
+            indices.push(0, i+2, last);
+            indices.push(1, i+2, i+spikes+2);
+            indices.push(1, i+2, last);
+        }
+        super(vertices, indices, gl, shaderProgram);
     }
 
-    getWidth(){
-        return this.width
-    }
-
-    getHeight(){
-        return this.height
-    }
-
-    getDepth(){
-        return this.depth
-    }
 }
