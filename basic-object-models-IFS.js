@@ -29,7 +29,7 @@
  *    is the number of vertical slices, bounded by lines of latitude, the
  *    north pole and the south pole.)
  */
-function uvSphere(radius, slices, stacks) {
+export function uvSphere(radius, slices, stacks) {
    radius = radius || 0.5;
    slices = slices || 16;
    stacks = stacks || 8;
@@ -93,7 +93,7 @@ function uvSphere(radius, slices, stacks) {
  * @param stacks the number of lines of latitude plus 1, default 16.  These lines are perpendicular
  * to the z-axis and go around the tube the long way (arouind the hole).
  */
-function uvTorus(outerRadius, innerRadius, slices, stacks) {
+ export function uvTorus(outerRadius, innerRadius, slices, stacks) {
    outerRadius = outerRadius || 0.5;
    innerRadius = innerRadius || outerRadius/3;
    slices = slices || 32;
@@ -164,7 +164,7 @@ function uvTorus(outerRadius, innerRadius, slices, stacks) {
  * @param noBottom if missing or false, the cylinder has a bottom; if set to true,
  *   the cylinder has a bottom. The bottom is a disk at the negtive end of the cylinder.
  */
-function uvCylinder(radius, height, slices, noTop, noBottom) {
+ export function uvCylinder(radius, height, slices, noTop, noBottom) {
    radius = radius || 0.5;
    height = height || 2*radius;
    slices = slices || 32;
@@ -293,7 +293,7 @@ function uvCylinder(radius, height, slices, noTop, noBottom) {
  * @param noBottom if missing or false, the cone has a bottom; if set to true,
  *   the cone has a bottom. The bottom is a disk at the wide end of the cone.
  */
-function uvCone(radius, height, slices, noBottom) {
+ export function uvCone(radius, height, slices, noBottom) {
    radius = radius || 0.5;
    height = height || 2*radius;
    slices = slices || 32;

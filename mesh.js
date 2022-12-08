@@ -1,5 +1,7 @@
 // Andreas Form och Marcus Asplund
 
+import{uvCone, uvCylinder, uvTorus, uvSphere} from "./basic-object-models-IFS.js";
+
 class Mesh {
     constructor(vertices, indices, gl, shaderProgram) {
         
@@ -44,7 +46,7 @@ class Mesh {
 }
 
 
-class Star extends Mesh{
+export class Star extends Mesh{
     constructor(spikes, outerDistance, innerDistance, thickness, gl, shaderProgram){
         if (spikes < 2) throw new Error("spikes must be larger than 2");
         if (outerDistance <= innerDistance) throw new Error("outerDistance must be bigger or the same as innerDistance");
@@ -80,7 +82,7 @@ class Star extends Mesh{
 
 }
 
-class Cuboid extends Mesh{
+export class Cuboid extends Mesh{
     constructor(width, height, depth, gl, shaderProgram){
 
         let vertices = [
@@ -140,7 +142,7 @@ class Cuboid extends Mesh{
     }
 }
 
-class Ring extends Mesh{
+export class Ring extends Mesh{
     constructor(innerRadius, outerRadius, slices, gl, shaderProgram){
         let list = uvRing(innerRadius, outerRadius, slices);
         let vertices = list.vertexPositions;
@@ -150,7 +152,7 @@ class Ring extends Mesh{
 }
 
 
-class Sphere extends Mesh{
+export class Sphere extends Mesh{
     constructor(radius, slices, stacks, gl, shaderProgram){
         let list = uvSphere(radius, slices, stacks);
         let vertices = list.vertexPositions;
@@ -159,7 +161,7 @@ class Sphere extends Mesh{
     }
 }
 
-class Torus extends Mesh{
+export class Torus extends Mesh{
     constructor(outerRadius, innerRadius, slices, stacks, gl, shaderProgram){
         let list = uvTorus(outerRadius, innerRadius, slices, stacks);
         let vertices = list.vertexPositions;
@@ -168,7 +170,7 @@ class Torus extends Mesh{
     }
 }
 
-class Cylinder extends Mesh{
+export class Cylinder extends Mesh{
     constructor(radius, height, slices, noTop, noBottom, gl, shaderProgram){
         let list = uvCylinder(radius, height, slices, noTop, noBottom);
         let vertices = list.vertexPositions;
@@ -177,7 +179,7 @@ class Cylinder extends Mesh{
     }
 }
 
-class Cone extends Mesh{
+export class Cone extends Mesh{
     constructor(radius, height, slices, noBottom, gl, shaderProgram){
         let list = uvCone(radius, height, slices, noBottom);
         let vertices = list.vertexPositions;

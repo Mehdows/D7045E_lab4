@@ -1,9 +1,18 @@
 // Andreas Form och Marcus Asplund
 
+import { Shader } from "./shader.js";
+import { ShaderProgram } from "./shaderProgram.js";
+import { Camera } from "./camera.js";
+import { Cuboid, Sphere, Torus, Cone, Cylinder } from "./mesh.js";
+import { GraphicsNode } from "./graphicsNode.js";
+import { MonochromeMaterial } from "./material.js";
+import { mat4 } from './node_modules/gl-matrix/esm/index.js';
+
 var gl;
 var shaderProgram;
 var boxes = [];
 var camera;
+var playableBox;
 
 var vertexShaderSource =
 "attribute vec4 a_Position;\n" +
@@ -48,27 +57,12 @@ function init() {
 
 
   let cube = new Cuboid(width, height, depth, gl, shaderProgram);
-  let torus = new Torus(1, 0.5, 16, 8, gl, shaderProgram);
-  let sphere = new Sphere(0.5, 16, 8, gl, shaderProgram);
-  
-  let cone = new Cone(0.5, 0.5, 16, false, gl, shaderProgram);
-  let cylinder = new Cylinder(0.5, 1, 16, true, false, gl, shaderProgram);
 
-  let randomBoxesColor = [0, 1, 0, 1]; // Green
-  let playableBoxColor = [1, 0, 1, 1]; // Red
-  let randomBoxesMaterial = new MonochromeMaterial(gl, shaderProgram, randomBoxesColor);
+  let playableBoxColor = new Float32Array([1, 0, 1, 1]); // Red
   let playableBoxMaterial = new MonochromeMaterial(gl, shaderProgram, playableBoxColor);
-  let playableBoxMatrix = mat4([1,0,0,0],[0,1,0,0],[0,0,1,-3],[0,0,0,1]);
+  let playableBoxMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-3,1);
   playableBox = new GraphicsNode(gl, cube, playableBoxMaterial, playableBoxMatrix);
 
-  for (let i = 0; i < 5; i++) {
-    let x = Math.random() * 5 -2.5;
-    let y = Math.random() * 5 -2.5;
-    let z = -Math.random()*10 - 5;
-    let mat = move([x, y, z]);
-    let randomBox = new GraphicsNode(gl, torus, randomBoxesMaterial, mat);
-    boxes.push(randomBox);
-  }
   render();
 }
 
@@ -86,19 +80,19 @@ function render() {
 
 
 window.addEventListener('keydown', function(event) {
-    let moveVector = mat4([1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]);
+    let moveVector = mat4.fromValues(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
     if (event.key == 'w') {
-      moveVector[1][3] += 0.03;  
+      moveVector[13] += 0.03;  
     } if (event.key == 's') {
-      moveVector[1][3] -= 0.03;  
+      moveVector[13] -= 0.03;  
     } if (event.key == 'a') {
-      moveVector[0][3] -= 0.03;  
+      moveVector[12] -= 0.03;  
     } if (event.key == 'd') {
-      moveVector[0][3] += 0.03;  
+      moveVector[12] += 0.03;  
     } if (event.key == 'e') {
-      moveVector[2][3] += 0.03; 
+      moveVector[14] += 0.03; 
     } if (event.key == 'c') {
-      moveVector[2][3] -= 0.03;  
+      moveVector[14] -= 0.03;  
     }
     
     playableBox.update(moveVector);
