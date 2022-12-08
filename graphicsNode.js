@@ -8,6 +8,7 @@ class GraphicsNode {
         this.mesh = mesh;
         this.material = material;
         this.transform = transform;
+        this.children = [];
     }
 
     // Draw the node
@@ -23,4 +24,9 @@ class GraphicsNode {
         transform = mult(this.transform, transform);
         this.transform = transform;
     }
+
+    addChild(children) {
+        this.children = children;
+    }
+
 }
