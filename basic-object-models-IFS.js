@@ -16,133 +16,9 @@
  * The first three properties are of type Float32Array, while
  * model.indices is of type Uint16Array.
  *
- */
+ *
 
- 
- /**
-  * Create a model of a cube, centered at the origin.  (This is not
-  * a particularly good format for a cube, since an IFS representation
-  * has a lot of redundancy.)
-  * @side the length of a side of the cube.  If not given, the value will be 1.
-  */
-function cube(side) {
-   var s = (side || 1)/2;
-   var coords = [];
-   var normals = [];
-   var texCoords = [];
-   var indices = [];
-   function face(xyz, nrm) {
-      var start = coords.length/3;
-      var i;
-      for (i = 0; i < 12; i++) {
-         coords.push(xyz[i]);
-      }
-      for (i = 0; i < 4; i++) {
-         normals.push(nrm[0],nrm[1],nrm[2]);
-      }
-      texCoords.push(0,0,1,0,1,1,0,1);
-      indices.push(start,start+1,start+2,start,start+2,start+3);
-   }
-   face( [-s,-s,s, s,-s,s, s,s,s, -s,s,s], [0,0,1] );
-   face( [-s,-s,-s, -s,s,-s, s,s,-s, s,-s,-s], [0,0,-1] );
-   face( [-s,s,-s, -s,s,s, s,s,s, s,s,-s], [0,1,0] );
-   face( [-s,-s,-s, s,-s,-s, s,-s,s, -s,-s,s], [0,-1,0] );
-   face( [s,-s,-s, s,s,-s, s,s,s, s,-s,s], [1,0,0] );
-   face( [-s,-s,-s, -s,-s,s, -s,s,s, -s,s,-s], [-1,0,0] );
-   return {
-      vertexPositions: new Float32Array(coords),
-      vertexNormals: new Float32Array(normals),
-      vertexTextureCoords: new Float32Array(texCoords),
-      indices: new Uint16Array(indices)
-   };
-}
 
-/**
- * Creates a model of an annulus or disk lying in the xy plane,
- * centered at the origin.  (This is not a great representation,
- * since all the normals are the same.)
- * @param innerRadius the radius of the hole in the radius; a value of
- *    zero will give a disk rather than a ring.  If not present,
- *    the default value is 0.25.
- * @param outerRadius the radius of the ring, from the center to teh
- *    outer edge.  Must be greater than innerRadius.  If not provided,
- *    the default value is 2*innerRadius or is 0.5 if innerRadius is 0.
- * @slices the number of radial subdivisions in the circular approximation
- *    of an annulus.  If not provided, the value will be 32.
- */
-function ring(innerRadius, outerRadius, slices) {
-   if (arguments.length == 0)
-      innerRadius = 0.25;
-   outerRadius = outerRadius || innerRadius * 2 || 0.5;
-   slices = slices || 32;
-   var vertexCount, vertices, normals, texCoords, indices, i;
-   vertexCount = (innerRadius == 0)? slices + 1 : slices * 2;
-   vertices = new Float32Array( 3*vertexCount );
-   normals = new Float32Array( 3* vertexCount );
-   texCoords = new Float32Array( 2*vertexCount );
-   indices = new Uint16Array( innerRadius == 0 ?  3*slices : 3*2*slices );
-   var d = 2*Math.PI/slices;
-   var k = 0;
-   var t = 0;
-   var n = 0;
-   if (innerRadius == 0) {
-      for (i = 0; i < slices; i++) {
-         c = Math.cos(d*i);
-         s = Math.sin(d*i);
-         vertices[k++] = c*outerRadius;
-         vertices[k++] = s*outerRadius;
-         vertices[k++] = 0;
-         texCoords[t++] = 0.5 + 0.5*c;
-         texCoords[t++] = 0.5 + 0.5*s;
-         indices[n++] = slices;
-         indices[n++] = i;
-         indices[n++] = i == slices-1 ? 0 : i + 1;
-      }
-      vertices[k++] = vertices[k++] = vertices[k++] = 0;
-      texCoords[t++] = texCoords[t++] = 0;
-   }
-   else {
-      var r = innerRadius / outerRadius;
-      for (i = 0; i < slices; i++) {
-         c = Math.cos(d*i);
-         s = Math.sin(d*i);
-         vertices[k++] = c*innerRadius;
-         vertices[k++] = s*innerRadius;
-         vertices[k++] = 0;
-         texCoords[t++] = 0.5 + 0.5*c*r;
-         texCoords[t++] = 0.5 + 0.5*s*r;
-         vertices[k++] = c*outerRadius;
-         vertices[k++] = s*outerRadius;
-         vertices[k++] = 0;
-         texCoords[t++] = 0.5 + 0.5*c;
-         texCoords[t++] = 0.5 + 0.5*s;
-      }
-      for (i = 0; i < slices - 1; i++) {
-         indices[n++] = 2*i;
-         indices[n++] = 2*i+1;
-         indices[n++] = 2*i+3;
-         indices[n++] = 2*i;
-         indices[n++] = 2*i+3;
-         indices[n++] = 2*i+2;
-      }
-      indices[n++] = 2*i;
-      indices[n++] = 2*i+1;
-      indices[n++] = 1;
-      indices[n++] = 2*i;
-      indices[n++] = 1;
-      indices[n++] = 0;
-   }
-   for (i = 0; i < vertexCount; i++) {
-      normals[3*i] = normals[3*i+1] = 0;
-      normals[3*i+2] = 1;
-   }
-   return {
-       vertexPositions: vertices,
-       vertexNormals: normals,
-       vertexTextureCoords: texCoords,
-       indices: indices
-   };
-}
 
 /**
  * Create a model of a sphere.  The z-axis is the axis of the sphere,
@@ -155,8 +31,8 @@ function ring(innerRadius, outerRadius, slices) {
  */
 function uvSphere(radius, slices, stacks) {
    radius = radius || 0.5;
-   slices = slices || 32;
-   stacks = stacks || 16;
+   slices = slices || 16;
+   stacks = stacks || 8;
    var vertexCount = (slices+1)*(stacks+1);
    var vertices = new Float32Array( 3*vertexCount );
    var normals = new Float32Array( 3* vertexCount );
@@ -189,19 +65,19 @@ function uvSphere(radius, slices, stacks) {
       var row1 = j*(slices+1);
       var row2 = (j+1)*(slices+1);
       for (i = 0; i < slices; i++) {
-          indices[k++] = row1 + i;
-          indices[k++] = row2 + i + 1;
-          indices[k++] = row2 + i;
-          indices[k++] = row1 + i;
-          indices[k++] = row1 + i + 1;
-          indices[k++] = row2 + i + 1;
+         indices[k++] = row1 + i;
+         indices[k++] = row2 + i + 1;
+         indices[k++] = row2 + i;
+         indices[k++] = row1 + i;
+         indices[k++] = row1 + i + 1;
+         indices[k++] = row2 + i + 1;
       }
    }
    return {
-       vertexPositions: vertices,
-       vertexNormals: normals,
-       vertexTextureCoords: texCoords,
-       indices: indices
+      vertexPositions: vertices,
+      vertexNormals: normals,
+      vertexTextureCoords: texCoords,
+      indices: indices
    };
 }
 
@@ -462,12 +338,12 @@ function uvCone(radius, height, slices, noBottom) {
       var row1 = j*(slices+1);
       var row2 = (j+1)*(slices+1);
       for (i = 0; i < slices; i++) {
-          indices[k++] = row1 + i;
-          indices[k++] = row2 + i + 1;
-          indices[k++] = row2 + i;
-          indices[k++] = row1 + i;
-          indices[k++] = row1 + i + 1;
-          indices[k++] = row2 + i + 1;
+         indices[k++] = row1 + i;
+         indices[k++] = row2 + i + 1;
+         indices[k++] = row2 + i;
+         indices[k++] = row1 + i;
+         indices[k++] = row1 + i + 1;
+         indices[k++] = row2 + i + 1;
       }
    }
    var start = kv/3 - (slices+1);
@@ -519,10 +395,10 @@ function uvCone(radius, height, slices, noBottom) {
       }
    } 
    return {
-       vertexPositions: vertices,
-       vertexNormals: normals,
-       vertexTextureCoords: texCoords,
-       indices: indices
+      vertexPositions: vertices,
+      vertexNormals: normals,
+      vertexTextureCoords: texCoords,
+      indices: indices
    };   
 }
 

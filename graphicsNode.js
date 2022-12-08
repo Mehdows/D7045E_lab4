@@ -12,6 +12,7 @@ class GraphicsNode {
 
     // Draw the node
     draw() {
+        this.gl.bindVertexArray(this.mesh.getVertexArrObject());
         this.material.applyMaterial(flatten(this.transform));
         let indicesLength = this.mesh.getIndices().length;
         this.gl.drawElements(this.gl.TRIANGLES, indicesLength, this.gl.UNSIGNED_BYTE, 0);
