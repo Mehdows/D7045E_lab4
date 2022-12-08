@@ -3,10 +3,10 @@
 import { Shader } from "./shader.js";
 import { ShaderProgram } from "./shaderProgram.js";
 import { Camera } from "./camera.js";
-import { Cuboid, Sphere, Torus, Cone, Cylinder } from "./mesh.js";
+import { Cuboid, Sphere, Torus, Cone, Cylinder, Star} from "./mesh.js";
 import { GraphicsNode } from "./graphicsNode.js";
 import { MonochromeMaterial } from "./material.js";
-import { mat4 } from './node_modules/gl-matrix/esm/index.js';
+import { mat4, vec4 } from './node_modules/gl-matrix/esm/index.js';
 
 var gl;
 var shaderProgram;
@@ -84,10 +84,6 @@ function init() {
   let starNode = new GraphicsNode(gl, star, playableBoxMaterial, playableBoxMatrix);
 
   // Set children
-  cameraNode.addChild(mazeNode);
-  mazeNode.addChild(robotNode);
-  robotNode.addChild(headNode);
-  headNode.addChild(starNode);
 
   /* 
   for (let i = 0; i < 0; i++) {
@@ -99,28 +95,22 @@ function init() {
     nodes.push(randomBox);
   }
   */
+  let blackcol = vec4.fromValues(0, 0, 0, 1);
+  let whitecol = vec4.fromValues(1, 1, 1, 1);
 
-  let blackBox = new MonochromeMaterial(gl, shaderProgram, [0, 0, 0, 1]);
-  let whiteBox = new MonochromeMaterial(gl, shaderProgram, [1, 1, 1, 1]);
+  let blackBox = new MonochromeMaterial(gl, shaderProgram, blackcol);
+  let whiteBox = new MonochromeMaterial(gl, shaderProgram, whitecol);
 
   let black = true;
   
-  for(let i = -1.75; i < 1.75; i = i + 0.5) {
-    if(black) black = false;
-    else black = true;
-    for(let j = -1.75; j < 1.75; j = j + 0.5) {
-
-      let mat = mat4([1,0,0,i],[0,1,0,j],[0,0,1,-10],[0,0,0,1])
-      let randomBox;
-
-      if(black){
-        randomBox = new GraphicsNode(gl, cube, blackBox, mat);
-        black = false;
-
-      }else{
-        randomBox = new GraphicsNode(gl, cube, whiteBox, mat);
-        black = true;
-      }
+  for(let i = 0; i < 8; i += 1) {
+    for(let j = 0; j < 8; j += 1) {
+      
+      let x = 0.5*i-2;
+      let y = 0.5*j-2;
+      let mat = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0,x,y,-10,1)
+      
+      let randomBox = new GraphicsNode(gl, cube, black ? blackBox : whiteBox, mat);
       nodes.push(randomBox);
     }
   }
