@@ -9,9 +9,9 @@ export class Camera {
 
         let aspect = canvas.width / canvas.height;
 
-        let result = mat4.create();
-        mat4.perspective(result, 45, aspect, 1, 100);
-        this.projectionMatrix = result;
+        let perspective = mat4.create();
+        mat4.perspective(perspective, 45, aspect, 0.1, 100);
+        this.projectionMatrix = perspective;
 
     }
 

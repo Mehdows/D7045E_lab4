@@ -13,6 +13,9 @@ var gl;
 var shaderProgram;
 var camera;
 var world;
+var accelerationVector = mat4.create();
+var velocityVector = mat4.create()
+
 
 var vertexShaderSource =
 "attribute vec4 a_Position;\n" +
@@ -84,40 +87,63 @@ function doFrame() {
   const step = function () {
     render();
     requestAnimationFrame(step);
-    
+    slowDown();
+    world.update(velocityVector);
   };
   step();
 }
 
 
+let time = 0;
+let lastTime = 0;
+
+function slowDown() {
+  let d = new Date();
+  time = d.getTime();
+  let dt = time - lastTime;
+  lastTime = time;
+  let ax = accelerationVector[12];
+  let ay = accelerationVector[13];
+  let az = accelerationVector[14];
+  
+  velocityVector[12] += ax * (dt/100.0);
+  velocityVector[13] += ay * (dt/100.0);
+  velocityVector[14] += az * (dt/100.0);
+
+  accelerationVector[12] *= 0.965;
+  accelerationVector[13] *= 0.965;
+  accelerationVector[14] *= 0.965;
+
+  console.log("-=- vx: " + velocityVector);
+}
+
+
 window.addEventListener('keydown', function(event) {
-    let moveVector = mat4.fromValues(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
+  let rotationMatrix = mat4.create();
     if (event.key == 'w') {
-      moveVector[14] += 0.3;  
+      accelerationVector[14] += 0.03;  
     } else if (event.key == 's') {
-      moveVector[14] -= 0.3;  
+      accelerationVector[14] -= 0.03;  
     } else if (event.key == 'a') {
-      moveVector[12] -= 0.3;  
+      accelerationVector[12] += 0.03;  
     } else if (event.key == 'd') {
-      moveVector[12] += 0.3;  
+      accelerationVector[12] -= 0.03;  
     } else if (event.key == 'e') {
-      mat4.rotateX(moveVector, moveVector, 0.01);
-      rotate(moveVector);
+      accelerationVector[13] += 0.03;  
     } else if (event.key == 'c') {
-      rotate(moveVector);
-      mat4.rotateX(moveVector, moveVector, -0.01);
-    } else{
-      return;
-    }
-    
-    world.update(moveVector);
+      accelerationVector[13] -= 0.03;
+    } else if (event.key == 'ArrowUp'){
+      mat4.rotateX(rotationMatrix, rotationMatrix, 0.01);
+    } else if (event.key == 'ArrowDown'){
+      mat4.rotateX(rotationMatrix, rotationMatrix, -0.01);
+    } else if (event.key == 'ArrowRight'){
+      mat4.rotateY(rotationMatrix, rotationMatrix, 0.01);
+    } else if (event.key == 'ArrowLeft'){
+      mat4.rotateY(rotationMatrix, rotationMatrix, -0.01);
+    } 
+    world.update(rotationMatrix);
 });
 
-function rotate(mat){
-  for (let child of world.children){
-    child.update(mat);
-  }
-}
 
 
 
