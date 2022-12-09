@@ -34,7 +34,6 @@ var  fragmentShaderSource =
 "}\n";
 
 
-
 function init() {
   // Making the canvas
   let canvas = document.getElementById("gl-canvas");
@@ -51,16 +50,8 @@ function init() {
   // Making the camera
   camera = new Camera(gl, shaderProgram, canvas);
 
-  // Making the mesh
-  let width = 0.5;
-  let height = 0.5;
-  let depth = 0.5;
-
-  // Making invisble node for the scengraph
-  let invisible = new Cuboid(0, 0, 0, gl, shaderProgram)
-
   // Making the different meshes
-  let cube = new Cuboid(width, height, depth, gl, shaderProgram);
+  let cube = new Cuboid(0.5, 0.5, 0.5, gl, shaderProgram);
   let torus = new Torus(1, 0.5, 16, 8, gl, shaderProgram);
   let sphere = new Sphere(0.5, 16, 8, gl, shaderProgram);
   let cone = new Cone(0.5, 0.5, 16, false, gl, shaderProgram);
@@ -69,56 +60,9 @@ function init() {
 
   // Set colar and different information
   let randomBoxesColor = [0, 1, 0, 1]; // Green
-  let playableBoxColor = [1, 0, 1, 1]; // Red
-  //let randomBoxesMaterial = new MonochromeMaterial(gl, shaderProgram, randomBoxesColor);
-  let playableBoxMaterial = new MonochromeMaterial(gl, shaderProgram, playableBoxColor);
-  let playableBoxMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-3,1);
-  playableBox = new GraphicsNode(gl, cube, playableBoxMaterial, playableBoxMatrix);
-
-
-  // Making transform matrixes for nodes
-  let cameraMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
-  let mazeMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-10,1);
-  let robotMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 3,3,1,1);
-
-  // Making sceneNodes and matrixes
-  let cameraNode = new GraphicsNode(gl, invisible, playableBoxMaterial, cameraMatrix);
-  let mazeNode = new GraphicsNode(gl, invisible, playableBoxMaterial, mazeMatrix);
-  let robotNode = new GraphicsNode(gl, invisible, playableBoxMaterial, robotMatrix);
-  let headNode = new GraphicsNode(gl, cube, playableBoxMaterial, playableBoxMatrix);
-  let starNode = new GraphicsNode(gl, star, playableBoxMaterial, playableBoxMatrix);
-
-  // Set children
-  cameraNode.addChild(mazeNode);
-  mazeNode.addChild(robotNode);
-  robotNode.addChild(headNode);
-  headNode.addChild(starNode);
   
   let blackBox = new MonochromeMaterial(gl, shaderProgram, [0, 0, 0, 1]);
   let whiteBox = new MonochromeMaterial(gl, shaderProgram, [1, 1, 1, 1]);
-
-  
-  /*
-  for(let i = 0; i < 8; i = i + 1) {
-    for(let j = 0; j < 8; j = j + 1) {
-
-      let x = i*0.5-1.75;
-      let y = j*0.5-1.75;
-      
-      let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, x,y,-10,1);
-      let randomBox;
-      if(i%2 == 0 && j%2 == 0 || i%2 == 1 && j%2 == 1){
-        randomBox = new GraphicsNode(gl, cube, blackBox, mat);
-        nodes.push(randomBox);
-
-      }else{
-        randomBox = new GraphicsNode(gl, cube, whiteBox, mat);
-        nodes.push(randomBox);
-      }
-    }
-  }
-*/
-
 
   let y = 0;
   let white = true;
@@ -142,7 +86,6 @@ function init() {
       nodes.push(randomBox);
     }
   }
-  
 
   doFrame();
 }
@@ -156,7 +99,6 @@ function render() {
   for (let node of nodes) {
     node.draw();
   }
-  //playableBox.draw();
 }
 
 
@@ -166,7 +108,6 @@ function doFrame() {
     const now = performance.now();
     render();
     requestAnimationFrame(step);
-    
   };
   step();
 }
@@ -191,6 +132,7 @@ window.addEventListener('keydown', function(event) {
     for(let node of nodes) {
       node.update(moveVector);
     }
+    
 });
 
 window.onload = init;

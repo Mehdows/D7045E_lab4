@@ -3,13 +3,14 @@
 import{uvCone, uvCylinder, uvTorus, uvSphere} from "./basic-object-models-IFS.js";
 
 class Mesh {
-    constructor(vertices, indices, gl, shaderProgram) {
+    constructor(vertices, indices, normals, texCoords, gl, shaderProgram) {
         
         this.vertices = vertices;
         this.indices = indices;
+        this.normals = normals;
+        this.texCoords = texCoords;
 
         // Create a vertex array object
-        
         this.vertexArr = gl.createVertexArray();
         this.vertexBuff = gl.createBuffer();
         this.indexBuff = gl.createBuffer();
@@ -147,17 +148,22 @@ export class Ring extends Mesh{
         let list = uvRing(innerRadius, outerRadius, slices);
         let vertices = list.vertexPositions;
         let indices = list.indices;
-        super(vertices, indices, gl ,shaderProgram);
+        let normals = list.vertexNormals;
+        let texCoords = list.vertexTextureCoords;
+
+        super(vertices, indices, normals, texCoords, gl ,shaderProgram);
     }
 }
-
 
 export class Sphere extends Mesh{
     constructor(radius, slices, stacks, gl, shaderProgram){
         let list = uvSphere(radius, slices, stacks);
         let vertices = list.vertexPositions;
         let indices = list.indices;
-        super(vertices, indices, gl ,shaderProgram);
+        let normals = list.vertexNormals;
+        let texCoords = list.vertexTextureCoords;
+
+        super(vertices, indices, normals, texCoords, gl ,shaderProgram);
     }
 }
 
@@ -166,7 +172,10 @@ export class Torus extends Mesh{
         let list = uvTorus(outerRadius, innerRadius, slices, stacks);
         let vertices = list.vertexPositions;
         let indices = list.indices;
-        super(vertices, indices, gl ,shaderProgram);
+        let normals = list.vertexNormals;
+        let texCoords = list.vertexTextureCoords;
+
+        super(vertices, indices, normals, texCoords, gl ,shaderProgram);
     }
 }
 
@@ -175,7 +184,10 @@ export class Cylinder extends Mesh{
         let list = uvCylinder(radius, height, slices, noTop, noBottom);
         let vertices = list.vertexPositions;
         let indices = list.indices;
-        super(vertices, indices, gl ,shaderProgram);
+        let normals = list.vertexNormals;
+        let texCoords = list.vertexTextureCoords;
+
+        super(vertices, indices, normals, texCoords, gl ,shaderProgram);
     }
 }
 
@@ -184,6 +196,9 @@ export class Cone extends Mesh{
         let list = uvCone(radius, height, slices, noBottom);
         let vertices = list.vertexPositions;
         let indices = list.indices;
-        super(vertices, indices, gl ,shaderProgram);
+        let normals = list.vertexNormals;
+        let texCoords = list.vertexTextureCoords;
+
+        super(vertices, indices, normals, texCoords, gl ,shaderProgram);
     }
 }
