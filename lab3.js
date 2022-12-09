@@ -3,10 +3,10 @@
 import { Shader } from "./shader.js";
 import { ShaderProgram } from "./shaderProgram.js";
 import { Camera } from "./camera.js";
-import { Cuboid, Sphere, Torus, Cone, Cylinder, Star } from "./mesh.js";
+import { Cuboid, Sphere, Torus, Cone, Cylinder, Star} from "./mesh.js";
 import { GraphicsNode } from "./graphicsNode.js";
 import { MonochromeMaterial } from "./material.js";
-import { mat4 } from './node_modules/gl-matrix/esm/index.js';
+import { mat4, vec4 } from './node_modules/gl-matrix/esm/index.js';
 
 var gl;
 var shaderProgram;

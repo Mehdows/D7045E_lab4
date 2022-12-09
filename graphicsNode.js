@@ -9,7 +9,6 @@ export class GraphicsNode {
         this.mesh = mesh;
         this.material = material;
         this.transform = transform;
-        this.children = [];
     }
 
     // Draw the node
@@ -27,8 +26,5 @@ export class GraphicsNode {
         //this.transform = transform;
     }
 
-    addChild(children) {
-        this.children = children;
-    }
-
 }
+
