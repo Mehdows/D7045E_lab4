@@ -7,12 +7,12 @@ import { Cuboid, Sphere, Torus, Cone, Cylinder, Star} from "./mesh.js";
 import { GraphicsNode } from "./graphicsNode.js";
 import { MonochromeMaterial } from "./material.js";
 import { mat4, vec4 } from './node_modules/gl-matrix/esm/index.js';
+import { SceneNode } from "./sceneNode.js";
 
 var gl;
 var shaderProgram;
-var nodes = [];
 var camera;
-var playableBox;
+var world;
 
 var vertexShaderSource =
 "attribute vec4 a_Position;\n" +
@@ -58,34 +58,13 @@ function init() {
   let cylinder = new Cylinder(0.5, 1, 16, true, false, gl, shaderProgram);
   let star = new Star(5, 0.5, 0.25, 0.1, gl, shaderProgram);
 
-  // Set colar and different information
-  let randomBoxesColor = [0, 1, 0, 1]; // Green
-  
-  let blackBox = new MonochromeMaterial(gl, shaderProgram, [0, 0, 0, 1]);
-  let whiteBox = new MonochromeMaterial(gl, shaderProgram, [1, 1, 1, 1]);
+  let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-10,1);
+  world = new SceneNode(worldMatrix);
+  let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+  let board = new SceneNode(boardMatrix);
+  world.addChild(board);
+  board.addChildren(getChessboard());
 
-  let y = 0;
-  let white = true;
-  for(let i = 0; i < 64; i = i + 1){
-
-    if(i%8 == 0){
-      y++;
-      white = !white;
-    }
-
-    let x = (i%8);
-    let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, x,y,-10,1);
-
-    if(white){
-      white = false;
-      let randomBox = new GraphicsNode(gl, cube, whiteBox, mat);
-      nodes.push(randomBox);
-    }else{
-      white = true;
-      let randomBox = new GraphicsNode(gl, cube, blackBox, mat);
-      nodes.push(randomBox);
-    }
-  }
 
   doFrame();
 }
@@ -96,16 +75,12 @@ function render() {
   shaderProgram.activate();
   camera.activate();
 
-  for (let node of nodes) {
-    node.draw();
-  }
+  world.draw();
 }
 
 
 function doFrame() {
-  const start = performance.now();
   const step = function () {
-    const now = performance.now();
     render();
     requestAnimationFrame(step);
   };
@@ -117,22 +92,60 @@ window.addEventListener('keydown', function(event) {
     let moveVector = mat4.fromValues(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
     if (event.key == 'w') {
       moveVector[13] += 0.03;  
-    } if (event.key == 's') {
+    } else if (event.key == 's') {
       moveVector[13] -= 0.03;  
-    } if (event.key == 'a') {
+    } else if (event.key == 'a') {
       moveVector[12] -= 0.03;  
-    } if (event.key == 'd') {
+    } else if (event.key == 'd') {
       moveVector[12] += 0.03;  
-    } if (event.key == 'e') {
-      moveVector[14] += 0.03; 
-    } if (event.key == 'c') {
-      moveVector[14] -= 0.03;  
-    }
-
-    for(let node of nodes) {
-      node.update(moveVector);
+    } else if (event.key == 'e') {
+      for(let child of world.children){
+        mat4.rotate(moveVector, moveVector, 0.3, child.getPosition());
+        console.log(child.getPosition());
+      }
+    } else if (event.key == 'c') {
+      for(let child of world.children){
+        mat4.rotate(moveVector, moveVector, 0.3, child.getPosition());
+      }
+    } else{
+      return;
     }
     
+    world.update(moveVector);
 });
+
+
+
+
+
+function getChessboard() {
+  let cube = new Cuboid(.5, .5, .5, gl, shaderProgram);
+  let whiteBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,1,1));
+  let blackBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0,0,0,1));
+  let nodes = [];
+  let y = 0;
+  let white = true;
+  for(let i = 0; i < 64; i = i + 1){
+
+    if(i%8 == 0){
+      y++;
+      white = !white;
+    }
+
+    let x = (i%8);
+    let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, x-3.5,y-4.5,0,1);
+
+    if(white){
+      white = false;
+      let randomBox = new GraphicsNode(gl, cube, whiteBox, mat);
+      nodes.push(randomBox);
+    }else{
+      white = true;
+      let randomBox = new GraphicsNode(gl, cube, blackBox, mat);
+      nodes.push(randomBox);
+    }
+  }
+  return nodes;
+}
 
 window.onload = init;

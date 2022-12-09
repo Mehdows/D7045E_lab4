@@ -11,7 +11,6 @@ export class GraphicsNode {
         this.transform = transform;
     }
 
-    // Draw the node
     draw() {
         this.gl.bindVertexArray(this.mesh.getVertexArrObject());
         this.material.applyMaterial(this.transform);
@@ -19,11 +18,8 @@ export class GraphicsNode {
         this.gl.drawElements(this.gl.TRIANGLES, indicesLength, this.gl.UNSIGNED_BYTE, 0);
     }
 
-    // Update the green node position
     update(transform) {
-        //transform = mult(this.transform, transform);
         mat4.multiply(this.transform, this.transform, transform);
-        //this.transform = transform;
     }
 
 }
