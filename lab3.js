@@ -59,9 +59,9 @@ function init() {
   let cylinder = new Cylinder(0.5, 1, 16, true, false, gl, shaderProgram);
   let star = new Star(5, 0.5, 0.25, 0.1, gl, shaderProgram);
 
-  let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-10,1);
+  let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
   world = new SceneNode(worldMatrix);
-  let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+  let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-10,1);
   let board = new SceneNode(boardMatrix);
   world.addChild(board);
   board.addChildren(getChessboard());
@@ -75,7 +75,7 @@ function render() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   shaderProgram.activate();
   camera.activate();
-
+  world.computeWorldTransform(world.localtransform);
   world.draw();
 }
 
@@ -93,22 +93,19 @@ function doFrame() {
 window.addEventListener('keydown', function(event) {
     let moveVector = mat4.fromValues(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
     if (event.key == 'w') {
-      moveVector[13] += 0.03;  
+      moveVector[14] += 0.3;  
     } else if (event.key == 's') {
-      moveVector[13] -= 0.03;  
+      moveVector[14] -= 0.3;  
     } else if (event.key == 'a') {
-      moveVector[12] -= 0.03;  
+      moveVector[12] -= 0.3;  
     } else if (event.key == 'd') {
-      moveVector[12] += 0.03;  
+      moveVector[12] += 0.3;  
     } else if (event.key == 'e') {
-      for(let child of world.children){
-        mat4.rotate(moveVector, moveVector, 0.3, child.getPosition());
-        console.log(child.getPosition());
-      }
+      mat4.rotateX(moveVector, moveVector, 0.01);
+      rotate(moveVector);
     } else if (event.key == 'c') {
-      for(let child of world.children){
-        mat4.rotate(moveVector, moveVector, 0.3, child.getPosition());
-      }
+      rotate(moveVector);
+      mat4.rotateX(moveVector, moveVector, -0.01);
     } else{
       return;
     }
@@ -116,7 +113,11 @@ window.addEventListener('keydown', function(event) {
     world.update(moveVector);
 });
 
-
+function rotate(mat){
+  for (let child of world.children){
+    child.update(mat);
+  }
+}
 
 
 
@@ -135,7 +136,7 @@ function getChessboard() {
     }
 
     let x = (i%8);
-    let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, x-3.5,y-4.5,0,1);
+    let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, y-4.5, 0,x-3.5,1);
 
     if(white){
       white = false;

@@ -5,11 +5,12 @@ import { mat4, vec3 } from './node_modules/gl-matrix/esm/index.js';
 export class SceneNode {
     constructor(transform) {
         this.children = [];
-        this.transform = transform;
+        this.localtransform = transform;
+        this.worldtransform = mat4.create();
     }
 
     addChild(node) {
-        node.update(this.transform);
+        node.update(this.localtransform);
         this.children.push(node);
     }
 
@@ -23,24 +24,21 @@ export class SceneNode {
         return this.children;
     }
 
-    getPosition() {
-        let pos = vec3.create();
-        console.log(pos);
-        mat4.getTranslation(pos, this.transform);
-        
-        return pos;
-    }
-
     draw() {
         for (let child of this.children) {
-            child.draw(this.transform);
+            child.draw();
         }
     }
 
     update(transform) {
-        mat4.multiply(this.transform, this.transform, transform);
-        for (let child of this.children) {
-            child.update(transform);
+        mat4.multiply(this.localtransform, this.localtransform, transform);
+    }
+    
+    computeWorldTransform(parentTransform) {
+        mat4.multiply(this.worldtransform, parentTransform, this.localtransform);
+        console.log(this.worldtransform);
+        for (let child of this.getChildren()) {
+            child.computeWorldTransform(this.worldtransform);
         }
     }
 }
