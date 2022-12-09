@@ -7,6 +7,7 @@ import { Cuboid, Sphere, Torus, Cone, Cylinder, Star} from "./mesh.js";
 import { GraphicsNode } from "./graphicsNode.js";
 import { MonochromeMaterial } from "./material.js";
 import { mat4, vec4 } from './node_modules/gl-matrix/esm/index.js';
+import { SceneNode } from "./node.js";
 
 var gl;
 var shaderProgram;
@@ -73,28 +74,15 @@ function init() {
   //let randomBoxesMaterial = new MonochromeMaterial(gl, shaderProgram, randomBoxesColor);
   let playableBoxMaterial = new MonochromeMaterial(gl, shaderProgram, playableBoxColor);
   let playableBoxMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-3,1);
-  playableBox = new GraphicsNode(gl, cube, playableBoxMaterial, playableBoxMatrix);
+
+  let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-5,1);
+  let world = new SceneNode(worldMatrix)
+  let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+  let board = new SceneNode(boardMatrix)
 
 
-  // Making sceneNodes and matrixes
-  let cameraNode = new GraphicsNode(gl, invisible, playableBoxMaterial, playableBoxMatrix);
-  let mazeNode = new GraphicsNode(gl, invisible, playableBoxMaterial, playableBoxMatrix);
-  let robotNode = new GraphicsNode(gl, invisible, playableBoxMaterial, playableBoxMatrix);
-  let headNode = new GraphicsNode(gl, cube, playableBoxMaterial, playableBoxMatrix);
-  let starNode = new GraphicsNode(gl, star, playableBoxMaterial, playableBoxMatrix);
 
-  // Set children
 
-  /* 
-  for (let i = 0; i < 0; i++) {
-    let x = Math.random() * 5 -2.5;
-    let y = Math.random() * 5 -2.5;
-    let z = -Math.random()*10 - 5;
-    let mat = move([x, y, z]);
-    let randomBox = new GraphicsNode(gl, torus, randomBoxesMaterial, mat);
-    nodes.push(randomBox);
-  }
-  */
   let blackcol = vec4.fromValues(0, 0, 0, 1);
   let whitecol = vec4.fromValues(1, 1, 1, 1);
 
@@ -157,6 +145,10 @@ window.addEventListener('keydown', function(event) {
       moveVector[14] += 0.03; 
     } if (event.key == 'c') {
       moveVector[14] -= 0.03;  
+    }
+
+    for(let node of nodes) {
+      node.update(moveVector);
     }
 
     playableBox.update(moveVector);
