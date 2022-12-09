@@ -3,7 +3,7 @@
 import { Shader } from "./shader.js";
 import { ShaderProgram } from "./shaderProgram.js";
 import { Camera } from "./camera.js";
-import { Cuboid, Sphere, Torus, Cone, Cylinder } from "./mesh.js";
+import { Cuboid, Sphere, Torus, Cone, Cylinder, Star } from "./mesh.js";
 import { GraphicsNode } from "./graphicsNode.js";
 import { MonochromeMaterial } from "./material.js";
 import { mat4 } from './node_modules/gl-matrix/esm/index.js';
@@ -76,10 +76,15 @@ function init() {
   playableBox = new GraphicsNode(gl, cube, playableBoxMaterial, playableBoxMatrix);
 
 
+  // Making transform matrixes for nodes
+  let cameraMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+  let mazeMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-10,1);
+  let robotMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 3,3,1,1);
+
   // Making sceneNodes and matrixes
-  let cameraNode = new GraphicsNode(gl, invisible, playableBoxMaterial, playableBoxMatrix);
-  let mazeNode = new GraphicsNode(gl, invisible, playableBoxMaterial, playableBoxMatrix);
-  let robotNode = new GraphicsNode(gl, invisible, playableBoxMaterial, playableBoxMatrix);
+  let cameraNode = new GraphicsNode(gl, invisible, playableBoxMaterial, cameraMatrix);
+  let mazeNode = new GraphicsNode(gl, invisible, playableBoxMaterial, mazeMatrix);
+  let robotNode = new GraphicsNode(gl, invisible, playableBoxMaterial, robotMatrix);
   let headNode = new GraphicsNode(gl, cube, playableBoxMaterial, playableBoxMatrix);
   let starNode = new GraphicsNode(gl, star, playableBoxMaterial, playableBoxMatrix);
 
@@ -88,42 +93,56 @@ function init() {
   mazeNode.addChild(robotNode);
   robotNode.addChild(headNode);
   headNode.addChild(starNode);
-
-  /* 
-  for (let i = 0; i < 0; i++) {
-    let x = Math.random() * 5 -2.5;
-    let y = Math.random() * 5 -2.5;
-    let z = -Math.random()*10 - 5;
-    let mat = move([x, y, z]);
-    let randomBox = new GraphicsNode(gl, torus, randomBoxesMaterial, mat);
-    nodes.push(randomBox);
-  }
-  */
-
+  
   let blackBox = new MonochromeMaterial(gl, shaderProgram, [0, 0, 0, 1]);
   let whiteBox = new MonochromeMaterial(gl, shaderProgram, [1, 1, 1, 1]);
 
-  let black = true;
   
-  for(let i = -1.75; i < 1.75; i = i + 0.5) {
-    if(black) black = false;
-    else black = true;
-    for(let j = -1.75; j < 1.75; j = j + 0.5) {
+  /*
+  for(let i = 0; i < 8; i = i + 1) {
+    for(let j = 0; j < 8; j = j + 1) {
 
-      let mat = mat4([1,0,0,i],[0,1,0,j],[0,0,1,-10],[0,0,0,1])
+      let x = i*0.5-1.75;
+      let y = j*0.5-1.75;
+      
+      let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, x,y,-10,1);
       let randomBox;
-
-      if(black){
+      if(i%2 == 0 && j%2 == 0 || i%2 == 1 && j%2 == 1){
         randomBox = new GraphicsNode(gl, cube, blackBox, mat);
-        black = false;
+        nodes.push(randomBox);
 
       }else{
         randomBox = new GraphicsNode(gl, cube, whiteBox, mat);
-        black = true;
+        nodes.push(randomBox);
       }
+    }
+  }
+*/
+
+
+  let y = 0;
+  let white = true;
+  for(let i = 0; i < 64; i = i + 1){
+
+    if(i%8 == 0){
+      y++;
+      white = !white;
+    }
+
+    let x = (i%8);
+    let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, x,y,-10,1);
+
+    if(white){
+      white = false;
+      let randomBox = new GraphicsNode(gl, cube, whiteBox, mat);
+      nodes.push(randomBox);
+    }else{
+      white = true;
+      let randomBox = new GraphicsNode(gl, cube, blackBox, mat);
       nodes.push(randomBox);
     }
   }
+  
 
   doFrame();
 }
@@ -169,7 +188,9 @@ window.addEventListener('keydown', function(event) {
       moveVector[14] -= 0.03;  
     }
 
-    playableBox.update(moveVector);
+    for(let node of nodes) {
+      node.update(moveVector);
+    }
 });
 
 window.onload = init;
