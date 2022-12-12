@@ -13,6 +13,9 @@ var gl;
 var shaderProgram;
 var camera;
 var world;
+var accelerationVector = mat4.create();
+var velocityVector = mat4.create()
+
 
 var vertexShaderSource =
 "attribute vec4 a_Position;\n" +
@@ -58,9 +61,9 @@ function init() {
   let cylinder = new Cylinder(0.5, 1, 16, true, false, gl, shaderProgram);
   let star = new Star(5, 0.5, 0.25, 0.1, gl, shaderProgram);
 
-  let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-10,1);
+  let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
   world = new SceneNode(worldMatrix);
-  let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+  let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-10,1);
   let board = new SceneNode(boardMatrix);
   world.addChild(board);
   board.addChildren(getChessboard());
@@ -74,7 +77,7 @@ function render() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   shaderProgram.activate();
   camera.activate();
-
+  world.computeWorldTransform(world.localtransform);
   world.draw();
 }
 
@@ -83,37 +86,62 @@ function doFrame() {
   const step = function () {
     render();
     requestAnimationFrame(step);
+    slowDown();
+    world.update(velocityVector);
   };
   step();
 }
 
 
-window.addEventListener('keydown', function(event) {
-    let moveVector = mat4.fromValues(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
-    if (event.key == 'w') {
-      moveVector[13] += 0.03;  
-    } else if (event.key == 's') {
-      moveVector[13] -= 0.03;  
-    } else if (event.key == 'a') {
-      moveVector[12] -= 0.03;  
-    } else if (event.key == 'd') {
-      moveVector[12] += 0.03;  
-    } else if (event.key == 'e') {
-      for(let child of world.children){
-        mat4.rotate(moveVector, moveVector, 0.3, child.getPosition());
-        console.log(child.getPosition());
-      }
-    } else if (event.key == 'c') {
-      for(let child of world.children){
-        mat4.rotate(moveVector, moveVector, 0.3, child.getPosition());
-      }
-    } else{
-      return;
-    }
-    
-    world.update(moveVector);
-});
+let time = 0;
+let lastTime = 0;
 
+function slowDown() {
+  let d = new Date();
+  time = d.getTime();
+  let dt = time - lastTime;
+  lastTime = time;
+  let ax = accelerationVector[12];
+  let ay = accelerationVector[13];
+  let az = accelerationVector[14];
+  
+  velocityVector[12] += ax * (dt/100.0);
+  velocityVector[13] += ay * (dt/100.0);
+  velocityVector[14] += az * (dt/100.0);
+
+  accelerationVector[12] *= 0.965;
+  accelerationVector[13] *= 0.965;
+  accelerationVector[14] *= 0.965;
+
+  console.log("-=- vx: " + velocityVector);
+}
+
+
+window.addEventListener('keydown', function(event) {
+  let rotationMatrix = mat4.create();
+    if (event.key == 'w') {
+      accelerationVector[14] += 0.03;  
+    } else if (event.key == 's') {
+      accelerationVector[14] -= 0.03;  
+    } else if (event.key == 'a') {
+      accelerationVector[12] += 0.03;  
+    } else if (event.key == 'd') {
+      accelerationVector[12] -= 0.03;  
+    } else if (event.key == 'e') {
+      accelerationVector[13] += 0.03;  
+    } else if (event.key == 'c') {
+      accelerationVector[13] -= 0.03;
+    } else if (event.key == 'ArrowUp'){
+      mat4.rotateX(rotationMatrix, rotationMatrix, 0.01);
+    } else if (event.key == 'ArrowDown'){
+      mat4.rotateX(rotationMatrix, rotationMatrix, -0.01);
+    } else if (event.key == 'ArrowRight'){
+      mat4.rotateY(rotationMatrix, rotationMatrix, 0.01);
+    } else if (event.key == 'ArrowLeft'){
+      mat4.rotateY(rotationMatrix, rotationMatrix, -0.01);
+    } 
+    world.update(rotationMatrix);
+});
 
 
 
@@ -133,7 +161,7 @@ function getChessboard() {
     }
 
     let x = (i%8);
-    let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, x-3.5,y-4.5,0,1);
+    let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, y-4.5, 0,x-3.5,1);
 
     if(white){
       white = false;
