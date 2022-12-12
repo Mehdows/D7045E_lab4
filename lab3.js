@@ -67,7 +67,7 @@ function init() {
 
   let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
   world = new SceneNode(worldMatrix);
-  let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-10,1);
+  let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,10,1);
   let board = new SceneNode(boardMatrix);
   world.addChild(board);
   board.addChildren(getChessboard());
@@ -102,7 +102,8 @@ function slowDown(time) {
   let vx = positionVector[0];
   let vy = positionVector[1];
   let vz = positionVector[2];
-  let dpositionVector = vec3.fromValues(vx*dt, vy*dt, vz*dt);
+  let dpositionVector = vec3.create()
+  vec3.scale(dpositionVector, positionVector, dt);
   let dHorizontalRadians = horizontalRadians*dt;
   let dVerticalRadians = verticalRadians*dt;
   //slow down
@@ -129,13 +130,13 @@ window.addEventListener('keydown', function(event) {
     } else if (event.key == 'c') {
       positionVector[1] -= 0.01;
     } else if (event.key == 'ArrowUp'){
-      horizontalRadians += 0.001*Math.PI;
+      horizontalRadians += 0.0001*Math.PI;
     } else if (event.key == 'ArrowDown'){
-      horizontalRadians -= 0.001*Math.PI;
+      horizontalRadians -= 0.0001*Math.PI;
     } else if (event.key == 'ArrowRight'){
-      verticalRadians -= 0.001*Math.PI;
+      verticalRadians -= 0.0001*Math.PI;
     } else if (event.key == 'ArrowLeft'){
-      verticalRadians += 0.001*Math.PI;
+      verticalRadians += 0.0001*Math.PI;
     } 
 });
 
