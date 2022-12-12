@@ -36,7 +36,6 @@ export class SceneNode {
     
     computeWorldTransform(parentTransform) {
         mat4.multiply(this.worldtransform, parentTransform, this.localtransform);
-        console.log(this.worldtransform);
         for (let child of this.getChildren()) {
             child.computeWorldTransform(this.worldtransform);
         }

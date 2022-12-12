@@ -13,8 +13,8 @@ var gl;
 var shaderProgram;
 var camera;
 var world;
-var accelerationVector = mat4.create();
-var velocityVector = mat4.create()
+var velocityVector = mat4.create();
+var positionVector = mat4.create()
 
 
 var vertexShaderSource =
@@ -70,7 +70,7 @@ function init() {
   board.addChildren(getChessboard());
 
 
-  doFrame();
+  requestAnimationFrame(doFrame);
 }
 
 
@@ -80,58 +80,59 @@ function render() {
   camera.activate();
   world.computeWorldTransform(world.localtransform);
   world.draw();
-}
-
-
-function doFrame() {
-  const step = function () {
-    render();
-    requestAnimationFrame(step);
-    slowDown();
-    world.update(velocityVector);
-  };
-  step();
-}
-
-
-let time = 0;
-let lastTime = 0;
-
-function slowDown() {
-  let d = new Date();
-  time = d.getTime();
-  let dt = time - lastTime;
-  lastTime = time;
-  let ax = accelerationVector[12];
-  let ay = accelerationVector[13];
-  let az = accelerationVector[14];
   
-  velocityVector[12] += ax * (dt/100.0);
-  velocityVector[13] += ay * (dt/100.0);
-  velocityVector[14] += az * (dt/100.0);
+}
 
-  accelerationVector[12] *= 0.965;
-  accelerationVector[13] *= 0.965;
-  accelerationVector[14] *= 0.965;
 
-  console.log("-=- vx: " + velocityVector);
+function doFrame(time) {
+    render();
+    
+    slowDown(time);
+    world.update(positionVector);
+    requestAnimationFrame(doFrame);
+}
+
+
+let lastTime = 0;
+let dt = 0;
+
+function slowDown(time) {
+  
+  if (isNaN(lastTime)) lastTime = time;
+
+  dt = time - lastTime ;
+  lastTime = time;
+  let vx = velocityVector[12];
+  let vy = velocityVector[13];
+  let vz = velocityVector[14];
+  
+  positionVector[12] += vx * (dt/100.0);
+  positionVector[13] += vy * (dt/100.0);
+  positionVector[14] += vz * (dt/100.0);
+
+  velocityVector[12] *= 0.965;
+  velocityVector[13] *= 0.965;
+  velocityVector[14] *= 0.965;
+  console.log("1", velocityVector);
+  console.log("2", positionVector);
+
 }
 
 
 window.addEventListener('keydown', function(event) {
   let rotationMatrix = mat4.create();
     if (event.key == 'w') {
-      accelerationVector[14] += 0.03;  
+      velocityVector[14] += 0.03;  
     } else if (event.key == 's') {
-      accelerationVector[14] -= 0.03;  
+      velocityVector[14] -= 0.03;  
     } else if (event.key == 'a') {
-      accelerationVector[12] += 0.03;  
+      velocityVector[12] += 0.03;  
     } else if (event.key == 'd') {
-      accelerationVector[12] -= 0.03;  
+      velocityVector[12] -= 0.03;  
     } else if (event.key == 'e') {
-      accelerationVector[13] += 0.03;  
+      velocityVector[13] += 0.03;  
     } else if (event.key == 'c') {
-      accelerationVector[13] -= 0.03;
+      velocityVector[13] -= 0.03;
     } else if (event.key == 'ArrowUp'){
       mat4.rotateX(rotationMatrix, rotationMatrix, 0.01);
     } else if (event.key == 'ArrowDown'){
