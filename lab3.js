@@ -6,25 +6,28 @@ import { Camera } from "./camera.js";
 import { Cuboid, Sphere, Torus, Cone, Cylinder, Star} from "./mesh.js";
 import { GraphicsNode } from "./graphicsNode.js";
 import { MonochromeMaterial } from "./material.js";
-import { mat4, vec4 } from './node_modules/gl-matrix/esm/index.js';
+import { mat4, vec3, vec4 } from './node_modules/gl-matrix/esm/index.js';
 import { SceneNode } from "./sceneNode.js";
+
 
 var gl;
 var shaderProgram;
 var camera;
 var world;
-var velocityVector = mat4.create();
-var positionVector = mat4.create()
+let positionVector = vec3.create();
+let horizontalRadians = 0;
+let verticalRadians = 0;
 
 
 var vertexShaderSource =
 "attribute vec4 a_Position;\n" +
 "uniform mat4 u_TransformMatrix;\n" +
 "uniform mat4 u_CameraMatrix;\n" +
+"uniform mat4 u_PerspectiveMatrix;\n" +
 "varying float v_Depth;\n" +
 "void main()\n" +
 "{\n" +
-"  gl_Position = u_CameraMatrix * u_TransformMatrix * a_Position;\n" +
+"  gl_Position = u_PerspectiveMatrix * u_CameraMatrix * u_TransformMatrix * a_Position;\n" +
 "  v_Depth = sqrt( pow( gl_Position.x , 2.0) + pow( gl_Position.y , 2.0) + pow(gl_Position.z , 2.0));\n" +
 "}\n";
 
@@ -80,15 +83,12 @@ function render() {
   camera.activate();
   world.computeWorldTransform(world.localtransform);
   world.draw();
-  
 }
 
 
 function doFrame(time) {
     render();
-    
     slowDown(time);
-    world.update(positionVector);
     requestAnimationFrame(doFrame);
 }
 
@@ -97,52 +97,46 @@ let lastTime = 0;
 let dt = 0;
 
 function slowDown(time) {
-  
-  if (isNaN(lastTime)) lastTime = time;
-
   dt = time - lastTime ;
   lastTime = time;
-  let vx = velocityVector[12];
-  let vy = velocityVector[13];
-  let vz = velocityVector[14];
-  
-  positionVector[12] += vx * (dt/100.0);
-  positionVector[13] += vy * (dt/100.0);
-  positionVector[14] += vz * (dt/100.0);
-
-  velocityVector[12] *= 0.965;
-  velocityVector[13] *= 0.965;
-  velocityVector[14] *= 0.965;
-  console.log("1", velocityVector);
-  console.log("2", positionVector);
-
+  let vx = positionVector[0];
+  let vy = positionVector[1];
+  let vz = positionVector[2];
+  let dpositionVector = vec3.fromValues(vx*dt, vy*dt, vz*dt);
+  let dHorizontalRadians = horizontalRadians*dt;
+  let dVerticalRadians = verticalRadians*dt;
+  //slow down
+  let friction = 0.965;
+  vec3.scale(positionVector, positionVector, friction);
+  horizontalRadians *= friction;
+  verticalRadians *= friction;
+  camera.update(dpositionVector, dHorizontalRadians, dVerticalRadians);
 }
 
 
 window.addEventListener('keydown', function(event) {
-  let rotationMatrix = mat4.create();
+    
     if (event.key == 'w') {
-      velocityVector[14] += 0.03;  
+      positionVector[2] += 0.01;
     } else if (event.key == 's') {
-      velocityVector[14] -= 0.03;  
+      positionVector[2] -= 0.01;
     } else if (event.key == 'a') {
-      velocityVector[12] += 0.03;  
+      positionVector[0] += 0.01;
     } else if (event.key == 'd') {
-      velocityVector[12] -= 0.03;  
+      positionVector[0] -= 0.01;
     } else if (event.key == 'e') {
-      velocityVector[13] += 0.03;  
+      positionVector[1] += 0.01;
     } else if (event.key == 'c') {
-      velocityVector[13] -= 0.03;
+      positionVector[1] -= 0.01;
     } else if (event.key == 'ArrowUp'){
-      mat4.rotateX(rotationMatrix, rotationMatrix, 0.01);
+      horizontalRadians += 0.001*Math.PI;
     } else if (event.key == 'ArrowDown'){
-      mat4.rotateX(rotationMatrix, rotationMatrix, -0.01);
+      horizontalRadians -= 0.001*Math.PI;
     } else if (event.key == 'ArrowRight'){
-      mat4.rotateY(rotationMatrix, rotationMatrix, 0.01);
+      verticalRadians -= 0.001*Math.PI;
     } else if (event.key == 'ArrowLeft'){
-      mat4.rotateY(rotationMatrix, rotationMatrix, -0.01);
+      verticalRadians += 0.001*Math.PI;
     } 
-    world.update(rotationMatrix);
 });
 
 
