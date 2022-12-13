@@ -19,7 +19,6 @@ export class Camera {
         mat4.lookAt(this.cameraMatrix, position, lookAt, up)
         mat4.invert(this.cameraMatrix, this.cameraMatrix);
         this.perspectiveMatrix = perspective;
-        console.log(this.cameraMatrix);
     }
 
     activate(){

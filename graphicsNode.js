@@ -10,8 +10,6 @@ export class GraphicsNode extends SceneNode{
         this.gl = gl;
         this.mesh = mesh;
         this.material = material;
-        this.localtransform = transform;
-        this.worldtransform = mat4.create();
     }
 
     draw() {
@@ -19,6 +17,9 @@ export class GraphicsNode extends SceneNode{
         this.material.applyMaterial(this.worldtransform);
         let indicesLength = this.mesh.getIndices().length;
         this.gl.drawElements(this.gl.TRIANGLES, indicesLength, this.gl.UNSIGNED_BYTE, 0);
+        for (let child of this.children) {
+            child.draw();
+        }
     }
 }
 
