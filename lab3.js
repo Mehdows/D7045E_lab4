@@ -3,10 +3,10 @@
 import { Shader } from "./shader.js";
 import { ShaderProgram } from "./shaderProgram.js";
 import { Camera } from "./camera.js";
-import { Cuboid, Sphere, Torus, Cone, Cylinder, Star} from "./mesh.js";
-import { GraphicsNode } from "./graphicsNode.js";
+import { Cuboid, Sphere, Torus, Cone, Cylinder, Star, Cube} from "./mesh.js";
+import { GraphicsNode, Light } from "./graphicsNode.js";
 import { MonochromeMaterial } from "./material.js";
-import { mat4, vec4 } from './node_modules/gl-matrix/esm/index.js';
+import { mat4, vec4, vec3 } from './node_modules/gl-matrix/esm/index.js';
 import { SceneNode } from "./sceneNode.js";
 
 var gl;
@@ -18,23 +18,89 @@ var velocityVector = mat4.create()
 
 
 var vertexShaderSource =
-"attribute vec4 a_Position;\n" +
-"uniform mat4 u_TransformMatrix;\n" +
-"uniform mat4 u_CameraMatrix;\n" +
-"varying float v_Depth;\n" +
+"attribute vec4 a_Position;\n" + // old
+"attribute vec3 a_normal; \n" + // new
+"uniform mat4 u_TransformMatrix;\n" + // old
+"uniform mat4 u_CameraMatrix;\n" + // old
+"varying vec3 v_normal; \n" + // new
+"varying vec3 v_eyeCoords; \n" + // new 
 "void main()\n" +
 "{\n" +
-"  gl_Position = u_CameraMatrix * u_TransformMatrix * a_Position;\n" +
-"  v_Depth = sqrt( pow( gl_Position.x , 2.0) + pow( gl_Position.y , 2.0) + pow(gl_Position.z , 2.0));\n" +
+"vec4 eyeCoords = u_TransformMatrix * a_Position; \n" + // new 
+"gl_Position = u_CameraMatrix * eyeCoords; \n" + // new 
+"v_normal = normalize(a_normal); \n" + // new 
+"v_eyeCoords = eyeCoords.xyz/eyeCoords.w; \n" + // new 
 "}\n";
 
 var  fragmentShaderSource = 
-"precision mediump float;\n" +
-"uniform vec4 u_Color;\n" +
-"varying float v_Depth;\n" +
-"void main() {\n" +
-    "gl_FragColor = vec4(u_Color[0]*1.5/v_Depth, u_Color[1]*1.5/v_Depth, u_Color[2]*1.5/v_Depth, 1);\n" +
-"}\n";
+"precision mediump float; \n" + // old
+"struct MaterialProperties {  \n" + // new
+"  vec4 diffuseColor;  \n" + // new      // diffuseColor.a is alpha for the fragment
+"  vec3 specularColor;  \n" + // new
+"  vec3 emissiveColor;  \n" + // new
+"  float specularExponent;  \n" + // new
+"};  \n" + // new
+
+"struct LightProperties { \n" + // new
+"  vec4 position; \n" + // new
+"  vec3 color; \n" + // new
+"  float attenuation; \n" + // new   // Linear attenuation factor, >= 0. Only point lights attenuate.
+"}; \n" + // new
+
+"uniform LightProperties light; \n" + // new
+"uniform MaterialProperties material; \n" + // new // do two-sided lighting, but assume front and back materials are the same
+"uniform mat3 normalMatrix; \n" + // new
+
+"varying vec3 v_normal; \n" + // new From vertex shader.
+"varying vec3 v_eyeCoords; \n" + // new From vertex shader.
+
+"vec3 lightingEquation( LightProperties light, MaterialProperties material, \n" + // new
+"  vec3 eyeCoords, vec3 N, vec3 V ) { \n" + // new
+// N is normal vector, V is direction to viewer.
+"vec3 L, R;  \n" + // new // Light direction and reflected light direction.
+"float attenuationFactor = 1.0; \n" + // new // multiplier to account for light attenuation with distance
+"if ( light.position.w == 0.0 ) { \n" + // new
+"L = normalize( light.position.xyz ); \n" + // new
+"} \n" + // new
+"else { \n" + // new
+"L = normalize( light.position.xyz/light.position.w - v_eyeCoords ); \n" + // new
+"if (light.attenuation > 0.0) { \n" + // new
+"float dist = distance(eyeCoords,light.position.xyz/light.position.w); \n" + // new
+"attenuationFactor = 1.0 / (1.0 + dist*light.attenuation); \n" + // new
+"} \n" + // new
+"} \n" + // new
+"if (dot(L,N) <= 0.0) { \n" + // new
+"return vec3(0.0); \n" + // new
+"} \n" + // new
+"vec3 reflection = dot(L,N) * light.color * material.diffuseColor.rgb; \n" + // new
+"R = -reflect(L,N); \n" + // new
+"if (dot(R,V) > 0.0) { \n" + // new
+"float factor = pow(dot(R,V),material.specularExponent); \n" + // new
+"reflection += factor * material.specularColor * light.color; \n" + // new
+"} \n" + // new
+"return attenuationFactor*reflection; \n" + // new
+"} \n" + // new
+
+
+
+"void main() {  \n" + // new
+"  vec3 normal = normalize( normalMatrix*v_normal );  \n" + // new
+"  vec3 viewDirection = normalize( -v_eyeCoords);  \n" + // new  // (Assumes a perspective projection.)
+"  vec3 color = material.emissiveColor; \n" + // new
+
+"  if (gl_FrontFacing) { \n" + // new
+"     color += lightingEquation( light, material, v_eyeCoords, \n" + // new
+"                                              normal, viewDirection); \n" + // new
+"   } \n" + // new
+"   else { \n" + // new
+"     color += lightingEquation( light, material, v_eyeCoords, \n" + // new
+"                                              -normal, viewDirection); \n" + // new
+"   } \n" + // new
+"   gl_FragColor = vec4(color,material.diffuseColor.a); \n" + // new
+"} \n";  // new
+
+
+
 
 
 function init() {
@@ -42,7 +108,7 @@ function init() {
   let canvas = document.getElementById("gl-canvas");
   gl = canvas.getContext("webgl2");
   gl.viewport(0, 0, canvas.width, canvas.height);
-  gl.clearColor(0.9, 0.2, 0.9, 1.0);
+  gl.clearColor(0.5, 0.5, 0.5, 1.0);
   gl.enable(gl.DEPTH_TEST);
 
   // Making the shaders
@@ -53,21 +119,34 @@ function init() {
   // Making the camera
   camera = new Camera(gl, shaderProgram, canvas);
 
+
   // Making the different meshes
-  let cube = new Cuboid(0.5, 0.5, 0.5, gl, shaderProgram);
+//  let cube = new Cuboid(0.5, 0.5, 0.5, gl, shaderProgram);
   let torus = new Torus(1, 0.5, 16, 8, gl, shaderProgram);
   let sphere = new Sphere(0.5, 16, 8, gl, shaderProgram);
   let cone = new Cone(0.5, 0.5, 16, false, gl, shaderProgram);
   let cylinder = new Cylinder(0.5, 1, 16, true, false, gl, shaderProgram);
-  let star = new Star(5, 0.5, 0.25, 0.1, gl, shaderProgram);
+//  let star = new Star(5, 0.5, 0.25, 0.1, gl, shaderProgram);
 
   let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
   world = new SceneNode(worldMatrix);
   let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-10,1);
   let board = new SceneNode(boardMatrix);
   world.addChild(board);
-  board.addChildren(getChessboard());
+  //board.addChildren(getChessboard());
 
+  let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 0,0,-5,1);
+  let whiteBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,1,1));
+  let randomBox = new Light(gl, shaderProgram, sphere, whiteBox, mat);
+  randomBox.applyLight();
+  board.addChild(randomBox);
+
+
+  let mat1 = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 3,0,-5,1);
+  let BlackBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0,0,0,1));
+  let randomBox1 = new GraphicsNode(gl, sphere, BlackBox, mat1);
+  world.addChild(randomBox1);
+  
 
   doFrame();
 }
@@ -111,9 +190,8 @@ function slowDown() {
 
   accelerationVector[12] *= 0.965;
   accelerationVector[13] *= 0.965;
-  accelerationVector[14] *= 0.965;
+  accelerationVector[14] = accelerationVector[14] * 0.965;
 
-  console.log("-=- vx: " + velocityVector);
 }
 
 
@@ -140,14 +218,14 @@ window.addEventListener('keydown', function(event) {
     } else if (event.key == 'ArrowLeft'){
       mat4.rotateY(rotationMatrix, rotationMatrix, -0.01);
     } 
-    world.update(rotationMatrix);
+    //world.update(rotationMatrix);
 });
 
 
 
 
 function getChessboard() {
-  let cube = new Cuboid(.5, .5, .5, gl, shaderProgram);
+  let cube = new Cube(.5, .5, .5, gl, shaderProgram);
   let whiteBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,1,1));
   let blackBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0,0,0,1));
   let nodes = [];

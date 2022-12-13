@@ -93,7 +93,73 @@ export function uvSphere(radius, slices, stacks) {
  * @param stacks the number of lines of latitude plus 1, default 16.  These lines are perpendicular
  * to the z-axis and go around the tube the long way (arouind the hole).
  */
- export function uvTorus(outerRadius, innerRadius, slices, stacks) {
+
+
+
+
+export function uvCube(width, height, depth) {
+   var normals = [];
+   var texCoords = [];
+
+   let vertices = [
+      -width, -height, depth,
+      -width, height, depth,
+      width, height, depth,
+      width, -height, depth,
+      -width, -height, -depth,
+      -width, height, -depth,
+      width, height, -depth,
+      width, -height, -depth,
+   ];
+
+  let indices = [
+      1, 0, 3,
+      3, 2, 1,
+      2, 3, 7,
+      7, 6, 2,
+      3, 0, 4,
+      4, 7, 3,
+      6, 5, 1,
+      1, 2, 6,
+      4, 5, 6,
+      6, 7, 4,
+      5, 4, 0,
+      0, 1, 5
+   ];
+
+   /*
+   function face(xyz, nrm) {
+      var start = coords.length/3;
+      var i;
+      for (i = 0; i < 12; i++) {
+         coords.push(xyz[i]);
+      }
+      for (i = 0; i < 4; i++) {
+         normals.push(nrm[0],nrm[1],nrm[2]);
+      }
+      texCoords.push(0,0,1,0,1,1,0,1);
+   }
+
+   face( [-s,-s,s, s,-s,s, s,s,s, -s,s,s], [0,0,1] );
+   face( [-s,-s,-s, -s,s,-s, s,s,-s, s,-s,-s], [0,0,-1] );
+   face( [-s,s,-s, -s,s,s, s,s,s, s,s,-s], [0,1,0] );
+   face( [-s,-s,-s, s,-s,-s, s,-s,s, -s,-s,s], [0,-1,0] );
+   face( [s,-s,-s, s,s,-s, s,s,s, s,-s,s], [1,0,0] );
+   face( [-s,-s,-s, -s,-s,s, -s,s,s, -s,s,-s], [-1,0,0] );
+
+   */
+
+   return {
+      vertexPositions: new Float32Array(vertices),
+      vertexNormals: new Float32Array(normals),
+      vertexTextureCoords: new Float32Array(texCoords),
+      indices: new Uint16Array(indices)
+   };
+}
+
+
+
+export function uvTorus(outerRadius, innerRadius, slices, stacks) {
    outerRadius = outerRadius || 0.5;
    innerRadius = innerRadius || outerRadius/3;
    slices = slices || 32;

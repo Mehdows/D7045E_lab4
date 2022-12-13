@@ -1,36 +1,46 @@
 // Andreas Form och Marcus Asplund
 
-import{uvCone, uvCylinder, uvTorus, uvSphere} from "./basic-object-models-IFS.js";
+import{uvCone, uvCylinder, uvTorus, uvSphere, uvCube} from "./basic-object-models-IFS.js";
 
 class Mesh {
-    constructor(vertices, indices, normals, texCoords, gl, shaderProgram) {
+    constructor(normal, vertices, indices,  gl, shaderProgram) {
         
         this.vertices = vertices;
         this.indices = indices;
-        this.normals = normals;
-        this.texCoords = texCoords;
+        this.normal = normal;
+
 
         // Create a vertex array object
         this.vertexArr = gl.createVertexArray();
         this.vertexBuff = gl.createBuffer();
         this.indexBuff = gl.createBuffer();
+        this.normalBuff = gl.createBuffer(); // new
 
         gl.bindVertexArray(this.vertexArr);
+
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuff);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuff);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuff); // new
         
 
         let verticeArray = new Float32Array(this.vertices);
         let indiceArray = new Uint8Array(this.indices);
+        let normalArray = new Float32Array(this.normal); // new
 
         gl.bufferData(gl.ARRAY_BUFFER, verticeArray, gl.STATIC_DRAW);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indiceArray, gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, normalArray, gl.STATIC_DRAW); // new
         
         let prog = shaderProgram.getProgram();
         let pos = gl.getAttribLocation(prog, "a_Position");
+        let norm = gl.getAttribLocation(prog, "a_normal"); // new
 
         gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(pos);
+
+
+        gl.vertexAttribPointer(norm, 3, gl.FLOAT, false, 0, 0); // new
+        gl.enableVertexAttribArray(norm); // new
     }
 
     getVertexArrObject(){
@@ -143,6 +153,19 @@ export class Cuboid extends Mesh{
     }
 }
 
+
+export class Cube extends Mesh{
+    constructor(width, height, depth, gl, shaderProgram){
+        let list = uvCube(width, height, depth);
+        let vertices = list.vertexPositions;
+        let indices = list.indices;
+        let normals = list.vertexNormals;
+        let texCoords = list.vertexTextureCoords;
+
+        super(vertices, indices, gl ,shaderProgram);
+    }
+}
+
 export class Ring extends Mesh{
     constructor(innerRadius, outerRadius, slices, gl, shaderProgram){
         let list = uvRing(innerRadius, outerRadius, slices);
@@ -151,7 +174,7 @@ export class Ring extends Mesh{
         let normals = list.vertexNormals;
         let texCoords = list.vertexTextureCoords;
 
-        super(vertices, indices, normals, texCoords, gl ,shaderProgram);
+        super(normals, vertices, indices, gl ,shaderProgram);
     }
 }
 
@@ -163,7 +186,7 @@ export class Sphere extends Mesh{
         let normals = list.vertexNormals;
         let texCoords = list.vertexTextureCoords;
 
-        super(vertices, indices, normals, texCoords, gl ,shaderProgram);
+        super(normals, vertices, indices, gl ,shaderProgram);
     }
 }
 
@@ -175,7 +198,7 @@ export class Torus extends Mesh{
         let normals = list.vertexNormals;
         let texCoords = list.vertexTextureCoords;
 
-        super(vertices, indices, normals, texCoords, gl ,shaderProgram);
+        super(normals, vertices, indices, gl ,shaderProgram);
     }
 }
 
@@ -187,7 +210,7 @@ export class Cylinder extends Mesh{
         let normals = list.vertexNormals;
         let texCoords = list.vertexTextureCoords;
 
-        super(vertices, indices, normals, texCoords, gl ,shaderProgram);
+        super(normals, vertices, indices, gl ,shaderProgram);
     }
 }
 
@@ -199,6 +222,6 @@ export class Cone extends Mesh{
         let normals = list.vertexNormals;
         let texCoords = list.vertexTextureCoords;
 
-        super(vertices, indices, normals, texCoords, gl ,shaderProgram);
+        super(normals, vertices, indices, gl ,shaderProgram);
     }
 }

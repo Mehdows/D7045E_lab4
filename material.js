@@ -1,5 +1,6 @@
 // Andreas Form och Marcus Asplund
 
+import { mat3, mat4} from './node_modules/gl-matrix/esm/index.js';
 
 class material {
     constructor(gl, shaderProgram){
@@ -22,10 +23,23 @@ export class MonochromeMaterial extends material{
     applyMaterial(transformMatrix){
         let prog = this.shaderProgram.getProgram();
         
-        let colorLocation = this.gl.getUniformLocation(prog, "u_Color");
+
+        // new
+        let diffuseColor = this.gl.getUniformLocation(prog, "material.diffuseColor");
+        this.gl.uniform4fv(diffuseColor, this.color);
+
+//        let colorLocation = this.gl.getVaryingLocation(prog, "a_Color");
         let transformLocation = this.gl.getUniformLocation(prog, "u_TransformMatrix");
 
-        this.gl.uniform4fv(colorLocation, this.color);
+
+        let normalMatrix = mat3.create(); 
+        mat3.normalFromMat4(normalMatrix, transformMatrix);
+        
+        let u_normalMatrix =  this.gl.getUniformLocation(prog, "normalMatrix");
+        this.gl.uniformMatrix3fv(u_normalMatrix, false, normalMatrix);
+
+//        this.gl.uniform4fv(colorLocation, this.color);
         this.gl.uniformMatrix4fv(transformLocation, false, transformMatrix);
+
     }
 }
