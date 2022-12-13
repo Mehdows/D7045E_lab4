@@ -34,7 +34,7 @@ export class Light extends GraphicsNode{
 
         let prog = this.shaderProgram.getProgram();
 
-..
+        
         let lightColor = this.gl.getUniformLocation(prog, "light.color");
         let lightAttenuation = this.gl.getUniformLocation(prog, "light.attenuation");
         let lightPosition = this.gl.getUniformLocation(prog, "light.position");

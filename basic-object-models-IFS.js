@@ -97,7 +97,7 @@ export function uvSphere(radius, slices, stacks) {
 
 
 
-export function uvCube(width, height, depth) {
+function uvCube(width, height, depth) {
    var normals = [];
    var texCoords = [];
 
@@ -127,7 +127,7 @@ export function uvCube(width, height, depth) {
       0, 1, 5
    ];
 
-   /*
+
    function face(xyz, nrm) {
       var start = coords.length/3;
       var i;
@@ -147,7 +147,6 @@ export function uvCube(width, height, depth) {
    face( [s,-s,-s, s,s,-s, s,s,s, s,-s,s], [1,0,0] );
    face( [-s,-s,-s, -s,-s,s, -s,s,s, -s,s,-s], [-1,0,0] );
 
-   */
 
    return {
       vertexPositions: new Float32Array(vertices),

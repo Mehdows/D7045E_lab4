@@ -3,7 +3,7 @@
 import { Shader } from "./shader.js";
 import { ShaderProgram } from "./shaderProgram.js";
 import { Camera } from "./camera.js";
-import { Cuboid, Sphere, Torus, Cone, Cylinder, Star, Cube} from "./mesh.js";
+import { Cuboid, Sphere, Torus, Cone, Cylinder, Star} from "./mesh.js";
 import { GraphicsNode, Light } from "./graphicsNode.js";
 import { MonochromeMaterial } from "./material.js";
 import { mat4, vec3, vec4 } from './node_modules/gl-matrix/esm/index.js';
@@ -127,12 +127,12 @@ function init() {
 
 
   // Making the different meshes
-//  let cube = new Cuboid(0.5, 0.5, 0.5, gl, shaderProgram);
+  let cube = new Cuboid(0.5, 0.5, 0.5, gl, shaderProgram);
   let torus = new Torus(1, 0.5, 16, 8, gl, shaderProgram);
   let sphere = new Sphere(0.5, 16, 8, gl, shaderProgram);
   let cone = new Cone(0.5, 0.5, 16, false, gl, shaderProgram);
   let cylinder = new Cylinder(0.5, 1, 16, true, false, gl, shaderProgram);
-//  let star = new Star(5, 0.5, 0.25, 0.1, gl, shaderProgram);
+  let star = new Star(5, 0.5, 0.25, 0.1, gl, shaderProgram);
 
   let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
   world = new SceneNode(worldMatrix);
@@ -147,7 +147,7 @@ function init() {
 
   world.addChild(board);
   //board.addChildren(
-    getChessboard());
+  getChessboard();
   board.addChild(walls);
   walls.addChildren(getWalls());
   let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 0,0,-5,1);
@@ -277,7 +277,7 @@ function backAndForwardMoving(){
 }
 
 function getChessboard() {
-  let cube = new Cube(.5, .5, .5, gl, shaderProgram);
+  let cube = new Cuboid(.5, .5, .5, gl, shaderProgram);
   let whiteBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,1,1));
   let blackBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0,0,0,1));
   let nodes = [];

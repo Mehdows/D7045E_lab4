@@ -1,13 +1,13 @@
 // Andreas Form och Marcus Asplund
 
-import{uvCone, uvCylinder, uvTorus, uvSphere, uvCube} from "./basic-object-models-IFS.js";
+import{uvCone, uvCylinder, uvTorus, uvSphere} from "./basic-object-models-IFS.js";
+import { vec3 } from './node_modules/gl-matrix/esm/index.js';
 
 class Mesh {
     constructor(normal, vertices, indices,  gl, shaderProgram) {
         
         this.vertices = vertices;
         this.indices = indices;
-        this.normals = this.calculateNormals(vertices, indices);
         this.normal = normal;
 
 
@@ -56,31 +56,6 @@ class Mesh {
         return this.vertices;
     }
     
-    calculateNormals(vertices, indices) {
-        let normals = [];
-        let vertexNormals = [];
-        for (let i = 0; i < vertices.length; i++) {
-            vertexNormals.push(vec3.create());
-        }
-        for (let i = 0; i < indices.length; i += 3) {
-            let v1 = vertices[indices[i]];
-            let v2 = vertices[indices[i + 1]];
-            let v3 = vertices[indices[i + 2]];
-            let normal = vec3.create();
-            vec3.cross(normal, vec3.subtract(vec3.create(), v2, v1), vec3.subtract(vec3.create(), v3, v1));
-            vec3.normalize(normal, normal);
-            vec3.add(vertexNormals[indices[i]], vertexNormals[indices[i]], normal);
-            vec3.add(vertexNormals[indices[i + 1]], vertexNormals[indices[i + 1]], normal);
-            vec3.add(vertexNormals[indices[i + 2]], vertexNormals[indices[i + 2]], normal);
-        }
-        for (let i = 0; i < vertexNormals.length; i++) {
-            vec3.normalize(vertexNormals[i], vertexNormals[i]);
-            normals.push(vertexNormals[i][0]);
-            normals.push(vertexNormals[i][1]);
-            normals.push(vertexNormals[i][2]);
-        }
-        return normals; 
-    }
 
 }
 
@@ -116,7 +91,9 @@ export class Star extends Mesh{
             indices.push(1, i+2, i+spikes+2);
             indices.push(1, i+2, last);
         }
-        super(vertices, indices, gl, shaderProgram);
+
+        let normals = calculateNormals(vertices, indices);
+        super(normals, vertices, indices, gl, shaderProgram);
     }
 }
 
@@ -148,8 +125,9 @@ export class Cuboid extends Mesh{
             5, 4, 0,
             0, 1, 5
         ];
-        
-        super(vertices, indices, gl, shaderProgram);
+
+        let normals = calculateNormals(vertices, indices);
+        super(normals, vertices, indices, gl, shaderProgram);
 
         this.width = width;
         this.height = height;
@@ -181,17 +159,6 @@ export class Cuboid extends Mesh{
 }
 
 
-export class Cube extends Mesh{
-    constructor(width, height, depth, gl, shaderProgram){
-        let list = uvCube(width, height, depth);
-        let vertices = list.vertexPositions;
-        let indices = list.indices;
-        let normals = list.vertexNormals;
-        let texCoords = list.vertexTextureCoords;
-
-        super(vertices, indices, gl ,shaderProgram);
-    }
-}
 
 export class Ring extends Mesh{
     constructor(innerRadius, outerRadius, slices, gl, shaderProgram){
@@ -251,4 +218,31 @@ export class Cone extends Mesh{
 
         super(normals, vertices, indices, gl ,shaderProgram);
     }
+}
+
+
+function calculateNormals(vertices, indices) {
+    let normals = [];
+    let vertexNormals = [];
+    for (let i = 0; i < vertices.length; i++) {
+        vertexNormals.push(vec3.create());
+    }
+    for (let i = 0; i < indices.length; i += 3) {
+        let v1 = vertices[indices[i]];
+        let v2 = vertices[indices[i + 1]];
+        let v3 = vertices[indices[i + 2]];
+        let normal = vec3.create();
+        vec3.cross(normal, vec3.subtract(vec3.create(), v2, v1), vec3.subtract(vec3.create(), v3, v1));
+        vec3.normalize(normal, normal);
+        vec3.add(vertexNormals[indices[i]], vertexNormals[indices[i]], normal);
+        vec3.add(vertexNormals[indices[i + 1]], vertexNormals[indices[i + 1]], normal);
+        vec3.add(vertexNormals[indices[i + 2]], vertexNormals[indices[i + 2]], normal);
+    }
+    for (let i = 0; i < vertexNormals.length; i++) {
+        vec3.normalize(vertexNormals[i], vertexNormals[i]);
+        normals.push(vertexNormals[i][0]);
+        normals.push(vertexNormals[i][1]);
+        normals.push(vertexNormals[i][2]);
+    }
+    return normals; 
 }
