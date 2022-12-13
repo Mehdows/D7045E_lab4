@@ -7,6 +7,7 @@ class Mesh {
         
         this.vertices = vertices;
         this.indices = indices;
+        this.normals = this.calculateNormals(vertices, indices);
         this.normal = normal;
 
 
@@ -54,6 +55,33 @@ class Mesh {
     getVertices(){
         return this.vertices;
     }
+    
+    calculateNormals(vertices, indices) {
+        let normals = [];
+        let vertexNormals = [];
+        for (let i = 0; i < vertices.length; i++) {
+            vertexNormals.push(vec3.create());
+        }
+        for (let i = 0; i < indices.length; i += 3) {
+            let v1 = vertices[indices[i]];
+            let v2 = vertices[indices[i + 1]];
+            let v3 = vertices[indices[i + 2]];
+            let normal = vec3.create();
+            vec3.cross(normal, vec3.subtract(vec3.create(), v2, v1), vec3.subtract(vec3.create(), v3, v1));
+            vec3.normalize(normal, normal);
+            vec3.add(vertexNormals[indices[i]], vertexNormals[indices[i]], normal);
+            vec3.add(vertexNormals[indices[i + 1]], vertexNormals[indices[i + 1]], normal);
+            vec3.add(vertexNormals[indices[i + 2]], vertexNormals[indices[i + 2]], normal);
+        }
+        for (let i = 0; i < vertexNormals.length; i++) {
+            vec3.normalize(vertexNormals[i], vertexNormals[i]);
+            normals.push(vertexNormals[i][0]);
+            normals.push(vertexNormals[i][1]);
+            normals.push(vertexNormals[i][2]);
+        }
+        return normals; 
+    }
+
 }
 
 
@@ -61,7 +89,7 @@ export class Star extends Mesh{
     constructor(spikes, outerDistance, innerDistance, thickness, gl, shaderProgram){
         if (spikes < 2) throw new Error("spikes must be larger than 2");
         if (outerDistance <= innerDistance) throw new Error("outerDistance must be bigger or the same as innerDistance");
-
+        
         let vertices = [
             0, 0, thickness/2, 
             0, 0, -thickness/2
@@ -90,7 +118,6 @@ export class Star extends Mesh{
         }
         super(vertices, indices, gl, shaderProgram);
     }
-
 }
 
 export class Cuboid extends Mesh{

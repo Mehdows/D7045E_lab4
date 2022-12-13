@@ -10,7 +10,6 @@ export class SceneNode {
     }
 
     addChild(node) {
-        node.update(this.localtransform);
         this.children.push(node);
     }
 

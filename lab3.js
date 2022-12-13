@@ -6,22 +6,28 @@ import { Camera } from "./camera.js";
 import { Cuboid, Sphere, Torus, Cone, Cylinder, Star, Cube} from "./mesh.js";
 import { GraphicsNode, Light } from "./graphicsNode.js";
 import { MonochromeMaterial } from "./material.js";
-import { mat4, vec4, vec3 } from './node_modules/gl-matrix/esm/index.js';
+import { mat4, vec3, vec4 } from './node_modules/gl-matrix/esm/index.js';
 import { SceneNode } from "./sceneNode.js";
+
 
 var gl;
 var shaderProgram;
 var camera;
 var world;
-var accelerationVector = mat4.create();
-var velocityVector = mat4.create()
+var positionVector = vec3.create();
+var horizontalRadians = 0;
+var verticalRadians = 0;
 
+var robotHat;
+var robotHead;
+var robot;
 
 var vertexShaderSource =
 "attribute vec4 a_Position;\n" + // old
 "attribute vec3 a_normal; \n" + // new
 "uniform mat4 u_TransformMatrix;\n" + // old
 "uniform mat4 u_CameraMatrix;\n" + // old
+"uniform mat4 u_PerspectiveMatrix;\n" +
 "varying vec3 v_normal; \n" + // new
 "varying vec3 v_eyeCoords; \n" + // new 
 "void main()\n" +
@@ -130,11 +136,20 @@ function init() {
 
   let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
   world = new SceneNode(worldMatrix);
-  let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-10,1);
+  let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,-2,10,1);
   let board = new SceneNode(boardMatrix);
-  world.addChild(board);
-  //board.addChildren(getChessboard());
+  let wallsMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1,0,1);
+  let walls = new SceneNode(wallsMatrix);
+  let robotMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 2,1,0,1);
+  robot = new SceneNode(robotMatrix);
+  
+  
 
+  world.addChild(board);
+  //board.addChildren(
+    getChessboard());
+  board.addChild(walls);
+  walls.addChildren(getWalls());
   let mat = mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 0,0,-5,1);
   let whiteBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,1,1));
   let randomBox = new Light(gl, shaderProgram, sphere, whiteBox, mat);
@@ -147,8 +162,9 @@ function init() {
   let randomBox1 = new GraphicsNode(gl, sphere, BlackBox, mat1);
   world.addChild(randomBox1);
   
-
-  doFrame();
+  board.addChild(robot);
+  robot.addChild(getRobot());
+  requestAnimationFrame(doFrame);
 }
 
 
@@ -156,73 +172,109 @@ function render() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   shaderProgram.activate();
   camera.activate();
+  shakeHead();
+  growStar();
+  backAndForwardMoving();
   world.computeWorldTransform(world.localtransform);
   world.draw();
 }
 
 
-function doFrame() {
-  const step = function () {
+function doFrame(time) {
     render();
-    requestAnimationFrame(step);
-    slowDown();
-    world.update(velocityVector);
-  };
-  step();
+    slowDown(time);
+    requestAnimationFrame(doFrame);
 }
 
 
-let time = 0;
 let lastTime = 0;
+let dt = 0;
 
-function slowDown() {
-  let d = new Date();
-  time = d.getTime();
-  let dt = time - lastTime;
+function slowDown(time) {
+  dt = time - lastTime ;
   lastTime = time;
-  let ax = accelerationVector[12];
-  let ay = accelerationVector[13];
-  let az = accelerationVector[14];
-  
-  velocityVector[12] += ax * (dt/100.0);
-  velocityVector[13] += ay * (dt/100.0);
-  velocityVector[14] += az * (dt/100.0);
-
-  accelerationVector[12] *= 0.965;
-  accelerationVector[13] *= 0.965;
-  accelerationVector[14] = accelerationVector[14] * 0.965;
-
+  let dpositionVector = vec3.create()
+  vec3.scale(dpositionVector, positionVector, dt);
+  let dHorizontalRadians = horizontalRadians*dt;
+  let dVerticalRadians = verticalRadians*dt;
+  //slow down
+  let friction = 0.965;
+  vec3.scale(positionVector, positionVector, friction);
+  horizontalRadians *= friction;
+  verticalRadians *= friction;
+  camera.update(dpositionVector, dHorizontalRadians, dVerticalRadians);
 }
 
 
 window.addEventListener('keydown', function(event) {
-  let rotationMatrix = mat4.create();
-    if (event.key == 'w') {
-      accelerationVector[14] += 0.03;  
-    } else if (event.key == 's') {
-      accelerationVector[14] -= 0.03;  
-    } else if (event.key == 'a') {
-      accelerationVector[12] += 0.03;  
-    } else if (event.key == 'd') {
-      accelerationVector[12] -= 0.03;  
-    } else if (event.key == 'e') {
-      accelerationVector[13] += 0.03;  
-    } else if (event.key == 'c') {
-      accelerationVector[13] -= 0.03;
-    } else if (event.key == 'ArrowUp'){
-      mat4.rotateX(rotationMatrix, rotationMatrix, 0.01);
-    } else if (event.key == 'ArrowDown'){
-      mat4.rotateX(rotationMatrix, rotationMatrix, -0.01);
-    } else if (event.key == 'ArrowRight'){
-      mat4.rotateY(rotationMatrix, rotationMatrix, 0.01);
-    } else if (event.key == 'ArrowLeft'){
-      mat4.rotateY(rotationMatrix, rotationMatrix, -0.01);
+    
+    if (event.key == 'w' && positionVector[2] < 0.005) {
+      positionVector[2] += 0.001;
+    } else if (event.key == 's' && positionVector[2] > -0.005) {
+      positionVector[2] -= 0.001;
+    } else if (event.key == 'a' && positionVector[0] < 0.005) {
+      positionVector[0] += 0.001;
+    } else if (event.key == 'd' && positionVector[0] > -0.005) {
+      positionVector[0] -= 0.001;
+    } else if (event.key == 'e' && positionVector[1] < 0.005) {
+      positionVector[1] += 0.001;
+    } else if (event.key == 'c' && positionVector[1] > -0.005) {
+      positionVector[1] -= 0.001;
+    } else if (event.key == 'ArrowUp' && horizontalRadians < 0.0005*Math.PI){
+      horizontalRadians -= 0.0001*Math.PI;
+    } else if (event.key == 'ArrowDown' && horizontalRadians > -0.0005*Math.PI){
+      horizontalRadians += 0.0001*Math.PI;
+    } else if (event.key == 'ArrowRight' && verticalRadians < 0.0005*Math.PI){
+      verticalRadians += 0.0001*Math.PI;
+    } else if (event.key == 'ArrowLeft' && verticalRadians > -0.0005*Math.PI){
+      verticalRadians -= 0.0001*Math.PI;
     } 
-    //world.update(rotationMatrix);
 });
 
+let scaled = 1.0;
+let scalefactor = 1.01;
+function growStar() {
+  let growMat = mat4.create();
+  if (scaled <= 1.0) {
+    scalefactor = 1.01;
+  } else if (scaled > 2) {
+    scalefactor = 0.99;
+  }
+  scaled *= scalefactor;
+  mat4.scale(growMat, growMat, vec3.fromValues(scalefactor, scalefactor, scalefactor));
+  robotHat.update(growMat);
+}
 
+let angle = 0;
+let angleAdd = 0.01*Math.PI;
+function shakeHead(){
 
+  if (angle > Math.PI/2-Math.PI/16) {
+    angleAdd = -0.01*Math.PI;
+  } else if (angle < -Math.PI/2+Math.PI/16) {
+    angleAdd = 0.01*Math.PI;
+  }
+  angle += angleAdd;
+  let rotateMat = mat4.create();
+  mat4.rotate(rotateMat, rotateMat, angleAdd, vec3.fromValues(0,1,0));
+  robotHead.update(rotateMat);
+}
+
+let movefactor = 0.01;
+let moved = 0;
+  
+function backAndForwardMoving(){
+  if (moved >= 0.2) {
+    movefactor = -0.01;
+  }
+  if (moved <= -0.2) {
+    movefactor = 0.01;
+  }    
+  moved += movefactor;
+  let moveMat = mat4.create();
+  mat4.translate(moveMat, moveMat, vec3.fromValues(movefactor,0,0));
+  robot.update(moveMat);
+}
 
 function getChessboard() {
   let cube = new Cube(.5, .5, .5, gl, shaderProgram);
@@ -252,6 +304,63 @@ function getChessboard() {
     }
   }
   return nodes;
+}
+
+function getWalls(){
+  let cubeOuterWall = new Cuboid(.1, .5, 4, gl, shaderProgram);
+  let cubeInnerWall = new Cuboid(.1, .5, 1.5, gl, shaderProgram); 
+  let cubeInnerWall2 = new Cuboid(.1, .5, 2, gl, shaderProgram);
+  let cubeInnerWall3 = new Cuboid(.1, .5, 3.5, gl, shaderProgram);
+  let redBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,0,0,1));
+  let nodes = [];
+  let wallOuterLeft = new GraphicsNode(gl, cubeOuterWall, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 4,0,0,1));
+  let wallOuterRight = new GraphicsNode(gl, cubeOuterWall, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, -4,0,0,1));
+  let wallOuterBackLeft = new GraphicsNode(gl, cubeInnerWall, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 2.5,0,4,1));
+  let wallOuterBackRight = new GraphicsNode(gl, cubeInnerWall2, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, -2,0,4,1));
+  let wallOuterFrontRight = new GraphicsNode(gl, cubeInnerWall, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, -2.5,0,-4,1));
+  let wallOuterFrontLeft = new GraphicsNode(gl, cubeInnerWall2, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 2,0,-4,1));
+  let WallInner1 = new GraphicsNode(gl, cubeInnerWall, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 0,0,-2.5,1));
+  let WallInner2 = new GraphicsNode(gl, cubeInnerWall, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, -1.5,0,-1,1));
+  let WallInner3 = new GraphicsNode(gl, cubeInnerWall3, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, -0.5,0,1,1));
+
+
+  let rotateMat = mat4.create();
+  mat4.rotate(rotateMat, rotateMat, Math.PI/2, vec3.fromValues(0,1,0));
+
+  wallOuterFrontLeft.update(rotateMat);
+  wallOuterFrontRight.update(rotateMat);
+  wallOuterBackLeft.update(rotateMat);
+  wallOuterBackRight.update(rotateMat);
+  WallInner2.update(rotateMat);
+  WallInner3.update(rotateMat);
+
+  nodes.push(wallOuterBackLeft);
+  nodes.push(wallOuterBackRight);
+  nodes.push(wallOuterLeft);
+  nodes.push(wallOuterRight);
+  nodes.push(wallOuterFrontLeft);
+  nodes.push(wallOuterFrontRight);
+  nodes.push(WallInner1);
+  nodes.push(WallInner2);
+  nodes.push(WallInner3);
+
+  return nodes;
+}
+
+function getRobot(){
+  let cube = new Cuboid(.4, .5, .3, gl, shaderProgram);
+  let cone = new Cone(0.5, 0.5, 16, false, gl, shaderProgram);
+  let star = new Star(5, 0.4, 0.2, 0.1, gl, shaderProgram);
+  let greyBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0.5,1,0.5,1));
+  let yellow = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,0,1));
+  let robotBody = new GraphicsNode(gl, cube, greyBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 0,0,0,1));
+  robotHead = new GraphicsNode(gl, cone, greyBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 0,1,0,1));
+  robotHat = new GraphicsNode(gl, star, yellow, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 0,1,0,1));
+
+  robotBody.addChild(robotHead);
+  robotHead.addChild(robotHat);
+
+  return robotBody;
 }
 
 window.onload = init;
