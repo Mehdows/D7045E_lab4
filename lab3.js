@@ -3,7 +3,7 @@
 import { Shader } from "./shader.js";
 import { ShaderProgram } from "./shaderProgram.js";
 import { Camera } from "./camera.js";
-import { Cuboid, Sphere, Torus, Cone, Cylinder, Star} from "./mesh.js";
+import {  Sphere, Torus, Cone, Cylinder, Star, Cube} from "./mesh.js";
 import { GraphicsNode } from "./graphicsNode.js";
 import { MonochromeMaterial } from "./material.js";
 import { mat4, vec3, vec4 } from './node_modules/gl-matrix/esm/index.js';
@@ -24,13 +24,14 @@ var robot;
 
 var vertexShaderSource =
 "attribute vec4 a_Position;\n" +
+"attribute vec4 a_Normal;\n" +
 "uniform mat4 u_TransformMatrix;\n" +
 "uniform mat4 u_CameraMatrix;\n" +
 "uniform mat4 u_PerspectiveMatrix;\n" +
 "varying float v_Depth;\n" +
 "void main()\n" +
 "{\n" +
-"  gl_Position = u_PerspectiveMatrix * u_CameraMatrix * u_TransformMatrix * a_Position;\n" +
+"  gl_Position =  u_PerspectiveMatrix * u_CameraMatrix * u_TransformMatrix * a_Position;\n" +
 "  v_Depth = sqrt( pow( gl_Position.x , 2.0) + pow( gl_Position.y , 2.0) + pow(gl_Position.z , 2.0));\n" +
 "}\n";
 
@@ -61,7 +62,7 @@ function init() {
   camera = new Camera(gl, shaderProgram, canvas);
 
   // Making the different meshes
-  let cube = new Cuboid(0.5, 0.5, 0.5, gl, shaderProgram);
+  let cube = new Cube(0.5, 0.5, 0.5, 1, 1, 1, gl, shaderProgram);
   let torus = new Torus(1, 0.5, 16, 8, gl, shaderProgram);
   let sphere = new Sphere(0.5, 16, 8, gl, shaderProgram);
   let cone = new Cone(0.5, 0.5, 16, false, gl, shaderProgram);
@@ -80,8 +81,7 @@ function init() {
   
 
   world.addChild(board);
-  board.addChildren(
-    getChessboard());
+  board.addChildren(getChessboard());
   board.addChild(walls);
   walls.addChildren(getWalls());
   board.addChild(robot);
@@ -199,7 +199,7 @@ function backAndForwardMoving(){
 }
 
 function getChessboard() {
-  let cube = new Cuboid(.5, .5, .5, gl, shaderProgram);
+  let cube = new Cube(1, 1, 1, 1, 1, 1, gl, shaderProgram);
   let whiteBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,1,1));
   let blackBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0,0,0,1));
   let nodes = [];
@@ -229,10 +229,10 @@ function getChessboard() {
 }
 
 function getWalls(){
-  let cubeOuterWall = new Cuboid(.1, .5, 4, gl, shaderProgram);
-  let cubeInnerWall = new Cuboid(.1, .5, 1.5, gl, shaderProgram); 
-  let cubeInnerWall2 = new Cuboid(.1, .5, 2, gl, shaderProgram);
-  let cubeInnerWall3 = new Cuboid(.1, .5, 3.5, gl, shaderProgram);
+  let cubeOuterWall = new Cube(.2, 1, 8, 1, 1, 1, gl, shaderProgram);
+  let cubeInnerWall = new Cube(.2, 1, 3, 1, 1, 1, gl, shaderProgram); 
+  let cubeInnerWall2 = new Cube(.2, 1, 4, 1, 1, 1, gl, shaderProgram);
+  let cubeInnerWall3 = new Cube(.2, 1, 7, 1, 1, 1, gl, shaderProgram);
   let redBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,0,0,1));
   let nodes = [];
   let wallOuterLeft = new GraphicsNode(gl, cubeOuterWall, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 4,0,0,1));
@@ -270,7 +270,7 @@ function getWalls(){
 }
 
 function getRobot(){
-  let cube = new Cuboid(.4, .5, .3, gl, shaderProgram);
+  let cube = new Cube(.8, 1, .6, 1, 1, 1, gl, shaderProgram);
   let cone = new Cone(0.5, 0.5, 16, false, gl, shaderProgram);
   let star = new Star(5, 0.4, 0.2, 0.1, gl, shaderProgram);
   let greyBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0.5,1,0.5,1));

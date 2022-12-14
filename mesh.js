@@ -2,22 +2,26 @@
 
 import{uvCone, uvCylinder, uvTorus, uvSphere} from "./basic-object-models-IFS.js";
 
+import { mat4, vec3, vec4 } from './node_modules/gl-matrix/esm/index.js';
+
 class Mesh {
-    constructor(vertices, indices, gl, shaderProgram) {
+    constructor(vertices, indices, normals, gl, shaderProgram) {
         
         this.vertices = vertices;
         this.indices = indices;
-        this.normals = this.calculateNormals(vertices, indices);
+        this.normals = normals;
 
         // Create a vertex array object
         
         this.vertexArr = gl.createVertexArray();
         this.vertexBuff = gl.createBuffer();
         this.indexBuff = gl.createBuffer();
+        this.normalBuff = gl.createBuffer();
 
         gl.bindVertexArray(this.vertexArr);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuff);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuff);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuff);
         
 
         let verticeArray = new Float32Array(this.vertices);
@@ -25,12 +29,20 @@ class Mesh {
 
         gl.bufferData(gl.ARRAY_BUFFER, verticeArray, gl.STATIC_DRAW);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indiceArray, gl.STATIC_DRAW);
+        //gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
         
         let prog = shaderProgram.getProgram();
-        let pos = gl.getAttribLocation(prog, "a_Position");
+        
+        let coordLoc = gl.getAttribLocation(prog, "a_Position");
+        //let normalloc = gl.getAttribLocation(prog, "a_Normal");
+        
+        gl.vertexAttribPointer(coordLoc, 3, gl.FLOAT, false, 0, 0);
+        //gl.vertexAttribPointer(normalloc, 3, gl.FLOAT, false, 0, 0);
 
-        gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(pos);
+        gl.enableVertexAttribArray(coordLoc);
+        //gl.enableVertexAttribArray(normalloc);
+
+        
     }
 
     getVertexArrObject(){
@@ -45,31 +57,7 @@ class Mesh {
         return this.vertices;
     }
     
-    calculateNormals(vertices, indices) {
-        let normals = [];
-        let vertexNormals = [];
-        for (let i = 0; i < vertices.length; i++) {
-            vertexNormals.push(vec3.create());
-        }
-        for (let i = 0; i < indices.length; i += 3) {
-            let v1 = vertices[indices[i]];
-            let v2 = vertices[indices[i + 1]];
-            let v3 = vertices[indices[i + 2]];
-            let normal = vec3.create();
-            vec3.cross(normal, vec3.subtract(vec3.create(), v2, v1), vec3.subtract(vec3.create(), v3, v1));
-            vec3.normalize(normal, normal);
-            vec3.add(vertexNormals[indices[i]], vertexNormals[indices[i]], normal);
-            vec3.add(vertexNormals[indices[i + 1]], vertexNormals[indices[i + 1]], normal);
-            vec3.add(vertexNormals[indices[i + 2]], vertexNormals[indices[i + 2]], normal);
-        }
-        for (let i = 0; i < vertexNormals.length; i++) {
-            vec3.normalize(vertexNormals[i], vertexNormals[i]);
-            normals.push(vertexNormals[i][0]);
-            normals.push(vertexNormals[i][1]);
-            normals.push(vertexNormals[i][2]);
-        }
-        return normals; 
-    }
+    
 
 }
 
@@ -105,76 +93,160 @@ export class Star extends Mesh{
             indices.push(1, i+2, i+spikes+2);
             indices.push(1, i+2, last);
         }
-        super(vertices, indices, gl, shaderProgram);
+
+        let normals = calculateNormals(vertices, indices);
+        super(vertices, indices, normals, gl, shaderProgram);
     }
 }
 
-export class Cuboid extends Mesh{
-    constructor(width, height, depth, gl, shaderProgram){
 
-        let vertices = [
-            -width, -height, depth,
-            -width, height, depth,
-            width, height, depth,
-            width, -height, depth,
-            -width, -height, -depth,
-            -width, height, -depth,
-            width, height, -depth,
-            width, -height, -depth,
-        ];
+export class Cube extends Mesh{
+    constructor(width, height, depth, widthSegments, heightSegments, depthSegments, gl, shaderProgram){
+       
+        widthSegments = Math.floor( widthSegments );
+        heightSegments = Math.floor( heightSegments );
+        depthSegments = Math.floor( depthSegments );
 
-        let indices = [
-            1, 0, 3,
-            3, 2, 1,
-            2, 3, 7,
-            7, 6, 2,
-            3, 0, 4,
-            4, 7, 3,
-            6, 5, 1,
-            1, 2, 6,
-            4, 5, 6,
-            6, 7, 4,
-            5, 4, 0,
-            0, 1, 5
-        ];
-        
-        super(vertices, indices, gl, shaderProgram);
+        // buffers
 
-        this.width = width;
-        this.height = height;
-        this.depth = depth;
-        this.gl = gl;
-        this.shaderProgram = shaderProgram;
-    }
+        let indices = [];
+        let vertices = [];
+        let normals = [];
+        let uvs = [];
 
-    // Getters
-    getCordinates(){
-        let x = -this.width/2;
-        let y = -this.height/2;
-        let z = -this.depth/2;
+        // helper variables
 
-        return [x,y,z];
-    }
+        let numberOfVertices = 0;
+        let groupStart = 0;
 
-    getWidth(){
-        return this.width
-    }
+        // build each side of the box geometry
 
-    getHeight(){
-        return this.height
-    }
+        buildPlane( 'z', 'y', 'x', - 1, - 1, depth, height, width, depthSegments, heightSegments, 0 ); // px
+        buildPlane( 'z', 'y', 'x', 1, - 1, depth, height, - width, depthSegments, heightSegments, 1 ); // nx
+        buildPlane( 'x', 'z', 'y', 1, 1, width, depth, height, widthSegments, depthSegments, 2 ); // py
+        buildPlane( 'x', 'z', 'y', 1, - 1, width, depth, - height, widthSegments, depthSegments, 3 ); // ny
+        buildPlane( 'x', 'y', 'z', 1, - 1, width, height, depth, widthSegments, heightSegments, 4 ); // pz
+        buildPlane( 'x', 'y', 'z', - 1, - 1, width, height, - depth, widthSegments, heightSegments, 5 ); // nz
 
-    getDepth(){
-        return this.depth
+        // build geometry
+
+        function buildPlane( u, v, w, udir, vdir, width, height, depth, gridX, gridY ) {
+
+            const segmentWidth = width / gridX;
+            const segmentHeight = height / gridY;
+
+            const widthHalf = width / 2;
+            const heightHalf = height / 2;
+            const depthHalf = depth / 2;
+
+            const gridX1 = gridX + 1;
+            const gridY1 = gridY + 1;
+
+            let vertexCounter = 0;
+            let groupCount = 0;
+
+            const vector = []
+
+            // generate vertices, normals and uvs
+
+            for ( let iy = 0; iy < gridY1; iy ++ ) {
+
+                const y = iy * segmentHeight - heightHalf;
+
+                for ( let ix = 0; ix < gridX1; ix ++ ) {
+
+                    const x = ix * segmentWidth - widthHalf;
+
+                    // set values to correct vector component
+
+                    vector[ u ] = x * udir;
+                    vector[ v ] = y * vdir;
+                    vector[ w ] = depthHalf;
+
+                    // now apply vector to vertex buffer
+
+                    vertices.push( vector.x, vector.y, vector.z );
+
+                    // set values to correct vector component
+
+                    vector[ u ] = 0;
+                    vector[ v ] = 0;
+                    vector[ w ] = depth > 0 ? 1 : - 1;
+
+                    // now apply vector to normal buffer
+
+                    normals.push( vector.x, vector.y, vector.z );
+
+                    // uvs
+
+                    uvs.push( ix / gridX );
+                    uvs.push( 1 - ( iy / gridY ) );
+
+                    // counters
+
+                    vertexCounter += 1;
+
+                }
+
+            }
+
+            // indices
+
+            // 1. you need three indices to draw a single face
+            // 2. a single segment consists of two faces
+            // 3. so we need to generate six (2*3) indices per segment
+
+            for ( let iy = 0; iy < gridY; iy ++ ) {
+
+                for ( let ix = 0; ix < gridX; ix ++ ) {
+
+                    const a = numberOfVertices + ix + gridX1 * iy;
+                    const b = numberOfVertices + ix + gridX1 * ( iy + 1 );
+                    const c = numberOfVertices + ( ix + 1 ) + gridX1 * ( iy + 1 );
+                    const d = numberOfVertices + ( ix + 1 ) + gridX1 * iy;
+
+                    // faces
+
+                    indices.push( a, b, d );
+                    indices.push( b, c, d );
+
+                    // increase counter
+
+                    groupCount += 6;
+
+                }
+
+            }
+
+
+            // calculate new start value for groups
+
+            groupStart += groupCount;
+
+            // update total number of vertices
+
+            numberOfVertices += vertexCounter;
+
+        }
+        //make all lists into Float32Arrays
+        vertices = new Float32Array(vertices);
+        indices = new Uint16Array(indices);
+        normals = new Float32Array(normals);
+        uvs = new Float32Array(uvs);
+
+        super(vertices, indices, normals, gl, shaderProgram);
+
     }
 }
+
 
 export class Ring extends Mesh{
     constructor(innerRadius, outerRadius, slices, gl, shaderProgram){
         let list = uvRing(innerRadius, outerRadius, slices);
         let vertices = list.vertexPositions;
         let indices = list.indices;
-        super(vertices, indices, gl ,shaderProgram);
+        let normals = list.vertexNormals;
+        super(vertices, indices, normals, gl ,shaderProgram);
     }
 }
 
@@ -184,7 +256,8 @@ export class Sphere extends Mesh{
         let list = uvSphere(radius, slices, stacks);
         let vertices = list.vertexPositions;
         let indices = list.indices;
-        super(vertices, indices, gl ,shaderProgram);
+        let normals = list.vertexNormals;
+        super(vertices, indices, normals, gl ,shaderProgram);
     }
 }
 
@@ -193,7 +266,8 @@ export class Torus extends Mesh{
         let list = uvTorus(outerRadius, innerRadius, slices, stacks);
         let vertices = list.vertexPositions;
         let indices = list.indices;
-        super(vertices, indices, gl ,shaderProgram);
+        let normals = list.vertexNormals;
+        super(vertices, indices, normals, gl ,shaderProgram);
     }
 }
 
@@ -202,7 +276,8 @@ export class Cylinder extends Mesh{
         let list = uvCylinder(radius, height, slices, noTop, noBottom);
         let vertices = list.vertexPositions;
         let indices = list.indices;
-        super(vertices, indices, gl ,shaderProgram);
+        let normals = list.vertexNormals;
+        super(vertices, indices, normals, gl ,shaderProgram);
     }
 }
 
@@ -211,6 +286,37 @@ export class Cone extends Mesh{
         let list = uvCone(radius, height, slices, noBottom);
         let vertices = list.vertexPositions;
         let indices = list.indices;
-        super(vertices, indices, gl ,shaderProgram);
+        let normals = list.vertexNormals;
+        super(vertices, indices, normals, gl ,shaderProgram);
     }
 }
+
+
+function calculateNormals(vertices, indices) {
+    //Make a new array 
+    let normals = new Float32Array(indices.length);
+    //Loop through the indices
+    for (let i = 0; i < indices.length; i += 3) {
+        let p1 = vec3.fromValues(vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]]);
+        let p2 = vec3.fromValues(vertices[indices[i + 3]], vertices[indices[i + 4]], vertices[indices[i + 5]]);
+        let p3 = vec3.fromValues(vertices[indices[i + 6]], vertices[indices[i + 7]], vertices[indices[i + 8]]);
+        //Get all the vectors
+        let v1 = vec3.create();
+        let v2 = vec3.create();
+
+        vec3.subtract(v1, p2, p1);
+        vec3.subtract(v2, p3, p1);
+
+        //Get the cross product
+        let normal = vec3.create();
+        vec3.cross(normal, v1, v2);
+        //Normalize the cross product
+        vec3.normalize(normal, normal);
+        //Add the normal to the array
+        normals[i] = normal[0];
+        normals[i + 1] = normal[1];
+        normals[i + 2] = normal[2];
+    }
+    return normals; 
+}
+

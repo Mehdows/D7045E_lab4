@@ -1,6 +1,5 @@
 // Andreas Form och Marcus Asplund
 
-import { mat4 } from './node_modules/gl-matrix/esm/index.js';
 import { SceneNode } from './sceneNode.js';
 
 export class GraphicsNode extends SceneNode{
