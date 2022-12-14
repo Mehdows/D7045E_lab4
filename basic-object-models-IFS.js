@@ -1,4 +1,4 @@
-
+//Marcus ASplund och andreas form
 /**
  * The functions in this file create models in an
  * IFS format that can be drawn using gl.drawElements

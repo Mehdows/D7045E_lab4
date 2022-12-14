@@ -11,38 +11,37 @@ class Mesh {
         this.indices = indices;
         this.normals = normals;
 
+        
+        let verticeArray = new Float32Array(this.vertices);
+        let indiceArray = new Uint8Array(this.indices);
+        let normalArray = new Float32Array(this.normals);
+
+        let prog = shaderProgram.getProgram();
         // Create a vertex array object
         
         this.vertexArr = gl.createVertexArray();
+
         this.vertexBuff = gl.createBuffer();
         this.indexBuff = gl.createBuffer();
         this.normalBuff = gl.createBuffer();
 
         gl.bindVertexArray(this.vertexArr);
+        
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuff);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuff);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuff);
-        
-
-        let verticeArray = new Float32Array(this.vertices);
-        let indiceArray = new Uint8Array(this.indices);
-
-        gl.bufferData(gl.ARRAY_BUFFER, verticeArray, gl.STATIC_DRAW);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indiceArray, gl.STATIC_DRAW);
-        //gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
-        
-        let prog = shaderProgram.getProgram();
-        
-        let coordLoc = gl.getAttribLocation(prog, "a_Position");
-        //let normalloc = gl.getAttribLocation(prog, "a_Normal");
-        
-        gl.vertexAttribPointer(coordLoc, 3, gl.FLOAT, false, 0, 0);
-        //gl.vertexAttribPointer(normalloc, 3, gl.FLOAT, false, 0, 0);
 
-        gl.enableVertexAttribArray(coordLoc);
-        //gl.enableVertexAttribArray(normalloc);
-
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuff);
+        gl.bufferData(gl.ARRAY_BUFFER, verticeArray, gl.STATIC_DRAW);
         
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuff);
+        gl.bufferData(gl.ARRAY_BUFFER, normalArray, gl.STATIC_DRAW);
+        
+        gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(1);
+
     }
 
     getVertexArrObject(){
@@ -71,11 +70,18 @@ export class Star extends Mesh{
             0, 0, thickness/2, 
             0, 0, -thickness/2
         ];
+
+        let normal = [
+            0, 0, 1,
+            0, 0, -1
+        ];
+
         for (let i = 0; i < spikes; i++) {
             let angle =  Math.PI/2 + i/spikes * 2 * Math.PI;
             let x = Math.cos(angle) * outerDistance;
             let y = Math.sin(angle) * outerDistance;
             vertices.push(x, y, 0);
+            normal.push(Math.cos(angle),Math.sin(angle),0);
         }
         
         for (let i = 0; i < spikes; i++) {
@@ -83,6 +89,7 @@ export class Star extends Mesh{
             let x = Math.cos(angle) * innerDistance;
             let y = Math.sin(angle) * innerDistance;
             vertices.push(x, y, 0);
+            normal.push(Math.cos(angle),Math.sin(angle),0);
         }
 
         let indices = [];
@@ -94,8 +101,7 @@ export class Star extends Mesh{
             indices.push(1, i+2, last);
         }
 
-        let normals = calculateNormals(vertices, indices);
-        super(vertices, indices, normals, gl, shaderProgram);
+        super(vertices, indices, normal, gl, shaderProgram);
     }
 }
 
@@ -290,33 +296,3 @@ export class Cone extends Mesh{
         super(vertices, indices, normals, gl ,shaderProgram);
     }
 }
-
-
-function calculateNormals(vertices, indices) {
-    //Make a new array 
-    let normals = new Float32Array(indices.length);
-    //Loop through the indices
-    for (let i = 0; i < indices.length; i += 3) {
-        let p1 = vec3.fromValues(vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]]);
-        let p2 = vec3.fromValues(vertices[indices[i + 3]], vertices[indices[i + 4]], vertices[indices[i + 5]]);
-        let p3 = vec3.fromValues(vertices[indices[i + 6]], vertices[indices[i + 7]], vertices[indices[i + 8]]);
-        //Get all the vectors
-        let v1 = vec3.create();
-        let v2 = vec3.create();
-
-        vec3.subtract(v1, p2, p1);
-        vec3.subtract(v2, p3, p1);
-
-        //Get the cross product
-        let normal = vec3.create();
-        vec3.cross(normal, v1, v2);
-        //Normalize the cross product
-        vec3.normalize(normal, normal);
-        //Add the normal to the array
-        normals[i] = normal[0];
-        normals[i + 1] = normal[1];
-        normals[i + 2] = normal[2];
-    }
-    return normals; 
-}
-

@@ -2,6 +2,7 @@
 
 import { SceneNode } from './sceneNode.js';
 
+
 export class GraphicsNode extends SceneNode{
 
     constructor(gl, mesh, material, transform) {
@@ -16,9 +17,8 @@ export class GraphicsNode extends SceneNode{
         this.material.applyMaterial(this.worldtransform);
         let indicesLength = this.mesh.getIndices().length;
         this.gl.drawElements(this.gl.TRIANGLES, indicesLength, this.gl.UNSIGNED_BYTE, 0);
-        for (let child of this.children) {
-            child.draw();
-        }
+
+        super.draw();
     }
 }
 

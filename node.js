@@ -1,3 +1,5 @@
+//Marcus Asplund och Andreas Form
+
 import { mat4 } from "gl-matrix/esm";
 
 export class SceneNode{

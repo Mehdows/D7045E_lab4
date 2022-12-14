@@ -5,7 +5,7 @@ import { ShaderProgram } from "./shaderProgram.js";
 import { Camera } from "./camera.js";
 import {  Sphere, Torus, Cone, Cylinder, Star, Cube} from "./mesh.js";
 import { GraphicsNode } from "./graphicsNode.js";
-import { MonochromeMaterial } from "./material.js";
+import { LightMaterial, MonochromeMaterial } from "./material.js";
 import { mat4, vec3, vec4 } from './node_modules/gl-matrix/esm/index.js';
 import { SceneNode } from "./sceneNode.js";
 
@@ -22,26 +22,76 @@ var robotHat;
 var robotHead;
 var robot;
 
-var vertexShaderSource =
-"attribute vec4 a_Position;\n" +
-"attribute vec4 a_Normal;\n" +
-"uniform mat4 u_TransformMatrix;\n" +
-"uniform mat4 u_CameraMatrix;\n" +
-"uniform mat4 u_PerspectiveMatrix;\n" +
-"varying float v_Depth;\n" +
-"void main()\n" +
-"{\n" +
-"  gl_Position =  u_PerspectiveMatrix * u_CameraMatrix * u_TransformMatrix * a_Position;\n" +
-"  v_Depth = sqrt( pow( gl_Position.x , 2.0) + pow( gl_Position.y , 2.0) + pow(gl_Position.z , 2.0));\n" +
-"}\n";
+var vertexShaderSource =`
+attribute vec3 a_Position;
+attribute vec3 a_Normal;
+uniform mat4 u_TransformMatrix;
+uniform mat4 u_CameraMatrix;
+uniform mat4 u_PerspectiveMatrix;
+varying vec3 v_Normal;
+varying vec3 v_eyeCoords;
+void main()
+{
+  vec4 coords = vec4(a_Position, 1.0);
+  vec4 eyeCoords = u_TransformMatrix * coords;
+  gl_Position = u_PerspectiveMatrix * u_CameraMatrix * eyeCoords;
+  v_Normal = normalize(a_Normal);
+  v_eyeCoords = eyeCoords.xyz/eyeCoords.w;
+}`;
 
-var  fragmentShaderSource = 
-"precision mediump float;\n" +
-"uniform vec4 u_Color;\n" +
-"varying float v_Depth;\n" +
-"void main() {\n" +
-    "gl_FragColor = vec4(u_Color[0]*1.5/v_Depth, u_Color[1]*1.5/v_Depth, u_Color[2]*1.5/v_Depth, 1);\n" +
-"}\n";
+var  fragmentShaderSource =` 
+precision mediump float;
+
+uniform vec4 u_DiffuseColor;
+uniform vec3 u_SpecularColor;
+uniform vec3 u_EmissiveColor;
+uniform float u_SpecularExponent;
+uniform mat3 u_NormalMatrix;
+
+uniform vec4 u_LightPosition;
+uniform vec3 u_LightColor;
+uniform float u_Attenuation;
+
+varying vec3 v_Normal;
+varying vec3 v_eyeCoords;
+
+vec3 lightningEquation(vec3 N, vec3 V) {
+  vec3 L, R;
+  float attenuationFactor = 1.0;
+  if ( u_LightPosition.w == 0.0 ) {
+    L = normalize(u_LightPosition.xyz);
+  } else {
+    L = normalize(u_LightPosition.xyz/u_LightPosition.w - v_eyeCoords);
+    if ( u_Attenuation > 0.0 ) {
+      float dist = distance(v_eyeCoords, u_LightPosition.xyz/u_LightPosition.w);
+      attenuationFactor = 1.0/(1.0 + u_Attenuation * dist);
+    }
+  }
+  if (dot(L,N) <= 0.0) {
+    return vec3(0.0);
+  }
+  vec3 reflection = dot(L,N) * u_LightColor * u_DiffuseColor.rgb;
+  R = -reflect(L,N);
+  if (dot(R,V) > 0.0) {
+    float factor = pow(dot(R,V),u_SpecularExponent);
+    reflection += factor * u_LightColor * u_SpecularColor;
+  }
+  return attenuationFactor * reflection;
+}
+
+
+void main() {
+    vec3 normal = normalize(u_NormalMatrix * v_Normal);
+    vec3 viewDirection = normalize(-v_eyeCoords);
+    vec3 color = u_EmissiveColor;
+    if (gl_FrontFacing) {    
+      color += lightningEquation(normal, viewDirection);
+    } else {
+      color += lightningEquation(-normal, viewDirection);
+    }
+    gl_FragColor = vec4(color,u_DiffuseColor.a);
+    
+}`;
 
 
 
@@ -61,14 +111,6 @@ function init() {
   // Making the camera
   camera = new Camera(gl, shaderProgram, canvas);
 
-  // Making the different meshes
-  let cube = new Cube(0.5, 0.5, 0.5, 1, 1, 1, gl, shaderProgram);
-  let torus = new Torus(1, 0.5, 16, 8, gl, shaderProgram);
-  let sphere = new Sphere(0.5, 16, 8, gl, shaderProgram);
-  let cone = new Cone(0.5, 0.5, 16, false, gl, shaderProgram);
-  let cylinder = new Cylinder(0.5, 1, 16, true, false, gl, shaderProgram);
-  let star = new Star(5, 0.5, 0.25, 0.1, gl, shaderProgram);
-
   let worldMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
   world = new SceneNode(worldMatrix);
   let boardMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,-2,10,1);
@@ -77,6 +119,10 @@ function init() {
   let walls = new SceneNode(wallsMatrix);
   let robotMatrix = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 2,1,0,1);
   robot = new SceneNode(robotMatrix);
+  let sunMat = mat4.fromValues(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,6,0,1);
+  let lightmaterial = new LightMaterial(gl, shaderProgram, vec4.fromValues(1,1,1,1), vec3.fromValues(1,1,1), vec3.fromValues(1,1,1), 16, vec3.fromValues(1,1,1), 0.1);
+  let sphere = new Sphere( 2, 16, 8, gl, shaderProgram);
+  let sun = new GraphicsNode(gl, sphere, lightmaterial, sunMat);
   
   
 
@@ -86,6 +132,8 @@ function init() {
   walls.addChildren(getWalls());
   board.addChild(robot);
   robot.addChild(getRobot());
+  board.addChild(sun);
+  board.addChildren(getDetails());
   requestAnimationFrame(doFrame);
 }
 
@@ -200,8 +248,8 @@ function backAndForwardMoving(){
 
 function getChessboard() {
   let cube = new Cube(1, 1, 1, 1, 1, 1, gl, shaderProgram);
-  let whiteBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,1,1));
-  let blackBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0,0,0,1));
+  let whiteBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,1,1), vec3.fromValues(0.3,0.3,0.3));
+  let blackBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0,0,0,1), vec3.fromValues(0,0,0));
   let nodes = [];
   let y = 0;
   let white = true;
@@ -228,12 +276,35 @@ function getChessboard() {
   return nodes;
 }
 
+function getDetails(){
+  let nodes = [];
+  let cylinder = new Cylinder(0.5, 1, 16, false, false, gl, shaderProgram);
+  let torus = new Torus(1, 0.5, 16, 8, gl, shaderProgram);
+
+  let blue = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0,0,1,1), vec3.fromValues(0,0,0.3));
+  let yellow = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,0,1), vec3.fromValues(0.3,0.3,0));
+
+  let cylinderObjectLeft = new GraphicsNode(gl, cylinder, blue, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0,  2.25,1,3.5,1));
+  let torusObjectLeft = new GraphicsNode(gl, torus, yellow, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0,      2.25,1,3.5,1));
+
+  let cylinderObjectRight = new GraphicsNode(gl, cylinder, blue, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0,  -2.25,1,3.5,1));
+  let torusObjectRight = new GraphicsNode(gl, torus, yellow, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0,      -2.25,1,3.5,1));
+
+  nodes.push(cylinderObjectLeft);
+  nodes.push(torusObjectLeft);
+
+  nodes.push(cylinderObjectRight);
+  nodes.push(torusObjectRight);
+
+  return nodes;
+}
+
 function getWalls(){
   let cubeOuterWall = new Cube(.2, 1, 8, 1, 1, 1, gl, shaderProgram);
   let cubeInnerWall = new Cube(.2, 1, 3, 1, 1, 1, gl, shaderProgram); 
   let cubeInnerWall2 = new Cube(.2, 1, 4, 1, 1, 1, gl, shaderProgram);
   let cubeInnerWall3 = new Cube(.2, 1, 7, 1, 1, 1, gl, shaderProgram);
-  let redBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,0,0,1));
+  let redBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,0,0,1), vec3.fromValues(0.1,0,0));
   let nodes = [];
   let wallOuterLeft = new GraphicsNode(gl, cubeOuterWall, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 4,0,0,1));
   let wallOuterRight = new GraphicsNode(gl, cubeOuterWall, redBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, -4,0,0,1));
@@ -273,8 +344,8 @@ function getRobot(){
   let cube = new Cube(.8, 1, .6, 1, 1, 1, gl, shaderProgram);
   let cone = new Cone(0.5, 0.5, 16, false, gl, shaderProgram);
   let star = new Star(5, 0.4, 0.2, 0.1, gl, shaderProgram);
-  let greyBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0.5,1,0.5,1));
-  let yellow = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,0,1));
+  let greyBox = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(0.5,1,0.5,1), vec3.fromValues(0,0,0), vec3.fromValues(0.1,0.1,0), 0);
+  let yellow = new MonochromeMaterial(gl, shaderProgram, vec4.fromValues(1,1,0,1), vec3.fromValues(0.1,0.1,0), vec3.fromValues(0.1,0.1,0), 0);
   let robotBody = new GraphicsNode(gl, cube, greyBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 0,0,0,1));
   robotHead = new GraphicsNode(gl, cone, greyBox, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 0,1,0,1));
   robotHat = new GraphicsNode(gl, star, yellow, mat4.fromValues(1,0,0,0 ,0,1,0,0 ,0,0,1,0, 0,1,0,1));
